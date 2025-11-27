@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"os"
@@ -154,9 +155,15 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(fmt.Sprintf(`{"avatarUrl": "/%s"}`, avatarPath)))
 }
+
 func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	banned := S.ActionMiddleware(r, http.MethodPut, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -167,20 +174,20 @@ func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, _ := strconv.Atoi(user.ID)
-	err := S.RemoveOldAvatar(id, *user.Avatar)
+	err := S.RemoveOldAvatar(id, user.Avatar)
 	if err != nil {
 		http.Error(w, "Failed to remove old avatar", http.StatusInternalServerError)
 		return
 	}
 
-	if user.Nickname != nil {
-		user.Url = *user.Nickname
+	if user.Nickname != "" {
+		user.Url = user.Nickname
 	}
 	_, err = S.db.ExecContext(r.Context(), `
         UPDATE users
         SET first_name = ?, last_name = ?, nickname = ?, email = ?, birthdate = ?, avatar = ?, about_me = ?, is_private = ?, url = ?
 		WHERE id = ?
-	`, user.FirstName, user.LastName, user.Nickname, user.Email, user.DateOfBirth, user.Avatar, user.AboutMe, user.IsPrivate, user.Url, user.ID,
+	`, html.EscapeString(user.FirstName), html.EscapeString(user.LastName), html.EscapeString(user.Nickname), html.EscapeString(user.Email), html.EscapeString(user.DateOfBirth), user.Avatar, html.EscapeString(user.AboutMe), user.IsPrivate, html.EscapeString(user.Url), user.ID,
 	)
 	if err != nil {
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)

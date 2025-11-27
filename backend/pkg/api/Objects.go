@@ -23,11 +23,11 @@ type UserData struct {
 	ID                  string  `json:"id"`
 	FirstName           string  `json:"firstName"`
 	LastName            string  `json:"lastName"`
-	Nickname            *string `json:"nickname,omitempty"`
+	Nickname            string `json:"nickname,omitempty"`
 	Email               string  `json:"email"`
 	DateOfBirth         string  `json:"dateOfBirth"`
-	Avatar              *string `json:"avatar,omitempty"`
-	AboutMe             *string `json:"aboutMe,omitempty"`
+	Avatar              string `json:"avatar,omitempty"`
+	AboutMe             string `json:"aboutMe,omitempty"`
 	Age                 int     `json:"age"`
 	IsPrivate           bool    `json:"isPrivate"`
 	FollowersCount      int     `json:"followersCount"`
