@@ -89,3 +89,22 @@ func (S *Server) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		next.ServeHTTP(w, r)
 	}
 }
+
+func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool) bool {
+	NeedToBaned := false
+	if r.Method != Method {
+		NeedToBaned = true
+	}
+	UserId, _, err := S.CheckSession(r)
+	if err == nil && !logged {
+		NeedToBaned = true
+	}
+
+	if NeedToBaned {
+		S.db.Exec("INSERT INTO users  WHERE id = ? is_blocked = 1",
+			UserId,
+		)
+	}
+
+	return NeedToBaned
+}

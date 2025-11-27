@@ -19,6 +19,8 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	
+
 	var user User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
