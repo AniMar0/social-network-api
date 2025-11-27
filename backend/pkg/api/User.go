@@ -193,21 +193,7 @@ func (S *Server) AddUser(user User) error {
 		return err
 	}
 
-	// Handle nullable nickname - insert NULL if empty
-	var nickname interface{}
-	if user.Nickname == "" {
-		nickname = nil
-	} else {
-		nickname = html.EscapeString(user.Nickname)
-	}
-
-	// Handle nullable aboutMe - insert NULL if empty
-	var aboutMe interface{}
-	if user.AboutMe == "" {
-		aboutMe = nil
-	} else {
-		aboutMe = html.EscapeString(user.AboutMe)
-	}
+	user = refactorUserData(user)
 
 	query := `INSERT INTO users (first_name, last_name, birthdate, age, avatar, nickname, about_me,email,password,gender, url)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -217,10 +203,10 @@ func (S *Server) AddUser(user User) error {
 		html.EscapeString(user.DateOfBirth),
 		user.Age,
 		html.EscapeString(user.AvatarUrl),
-		nickname,
-		aboutMe,
+		html.EscapeString(user.Nickname),
+		html.EscapeString(user.AboutMe),
 		html.EscapeString(user.Email),
-		string(hashedPassword),
+		hashedPassword,
 		html.EscapeString(user.Gender),
 		html.EscapeString(user.Url))
 	if err != nil {
@@ -329,4 +315,13 @@ func (S *Server) ValidateRegisterInput(user User) bool {
 	}
 
 	return true
+}
+
+func refactorUserData(user User) User {
+	user.FirstName = strings.TrimSpace(user.FirstName)
+	user.LastName = strings.TrimSpace(user.LastName)
+	user.Nickname = strings.ToLower(strings.TrimSpace(user.Nickname))
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
+	user.AboutMe = strings.TrimSpace(user.AboutMe)
+	return user
 }
