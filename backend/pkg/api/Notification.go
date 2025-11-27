@@ -3,15 +3,17 @@ package backend
 import (
 	tools "SOCIAL-NETWORK/pkg"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
 func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request) {
-	userID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	banned := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
+	userID, _, _ := S.CheckSession(r)
 
 	rows, err := S.db.QueryContext(r.Context(), `
 		SELECT n.id, n.type, n.content, n.is_read, n.created_at,
@@ -22,7 +24,8 @@ func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request)
 		ORDER BY n.created_at DESC
 	`, userID)
 	if err != nil {
-		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		fmt.Println("DB error:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -32,7 +35,8 @@ func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request)
 		var notif Notification
 		if err := rows.Scan(&notif.ID, &notif.Type, &notif.Content, &notif.IsRead, &notif.CreatedAt,
 			&notif.ActorID, &notif.FirstName, &notif.LastName, &notif.Avatar); err != nil {
-			http.Error(w, "Error scanning row: "+err.Error(), http.StatusInternalServerError)
+			fmt.Println("Error scanning row:", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
