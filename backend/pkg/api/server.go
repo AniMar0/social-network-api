@@ -123,13 +123,3 @@ func (S *Server) initRoutes() {
 	S.mux.HandleFunc("/api/groups/chat/send", S.SendGroupMessageHandler)
 	S.mux.HandleFunc("/api/groups/members/", S.GetGroupMembersHandler)
 }
-
-func (S *Server) initWebSocket() {
-	S.upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return r.Header.Get("Origin") == "http://localhost:3000"
-		},
-	}
-}
