@@ -69,6 +69,6 @@ func ToLower(s string) string {
 
 // convert email to username without domain
 func ToUsername(s string) string {
-	s = s[:strings.Index(s, "@")]
+	s = s[:strings.Index(s, "@")] + strconv.Itoa(int(time.Now().Unix()))
 	return s
 }

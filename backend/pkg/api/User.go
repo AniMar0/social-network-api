@@ -21,25 +21,26 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	err := json.NewDecoder(r.Body).Decode(&user)
-
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("decode request body error (RegisterHandler):", err)
 		tools.SendJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
 	user.Email = tools.ToLower(user.Email)
 	err, found := S.UserFound(user, r.Context())
-	if err != nil {
+	if err != nil || found {
+		if found {
+			fmt.Println("User already exists")
+			tools.SendJSONError(w, "User already exists", http.StatusConflict)
+			return
+		}
 		fmt.Println(err)
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	if found {
-		fmt.Println("User already exists")
-		tools.SendJSONError(w, "User already exists", http.StatusConflict)
-		return
-	}
+	
 
 	user.Age = tools.GetAge(user.DateOfBirth)
 

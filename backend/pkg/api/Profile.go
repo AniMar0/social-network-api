@@ -179,7 +179,7 @@ func (S *Server) UserFound(user User, cnx context.Context) (error, bool) {
 	}
 
 	err := S.db.QueryRowContext(cnx, query, args...).Scan(&exists)
-	if err != nil {
+	if err != nil{
 		return err, false
 	}
 	if exists > 0 {
@@ -187,6 +187,7 @@ func (S *Server) UserFound(user User, cnx context.Context) (error, bool) {
 	}
 	return nil, false
 }
+
 func (S *Server) RemoveOldAvatar(userID int, newAvatar string) error {
 	// Get the avatar filename from the database
 	var oldAvatar string
