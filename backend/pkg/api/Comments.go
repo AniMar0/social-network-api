@@ -96,59 +96,34 @@ func (S *Server) GetComments(postID int, r *http.Request) ([]Comment, error) {
 		return nil, err
 	}
 	defer rows.Close()
-
-	commentsMap := make(map[int][]Comment)
 	var allComments []Comment
 
 	for rows.Next() {
 		var comment Comment
-		var parentCommentID sql.NullInt64
 		var authorName, authorUsername, authorAvatar sql.NullString
 
 		if err := rows.Scan(
 			&comment.ID,
 			&comment.Content,
 			&comment.CreatedAt,
-			&parentCommentID,
-			&comment.Likes,
 			&authorName,
 			&authorUsername,
 			&authorAvatar,
-			&comment.IsLiked,
 		); err != nil {
 			return nil, err
 		}
-
-		// handle nullable parent_id
-		if parentCommentID.Valid {
-			id := int(parentCommentID.Int64)
-			comment.ParentCommentID = id
-		}
-
+		
 		// author
 		comment.Author.Name = authorName.String
 		comment.Author.Username = authorUsername.String
 		comment.Author.Avatar = authorAvatar.String
-
-		comment.Replies = []Comment{}
-
-		if comment.ParentCommentID != 0 {
-			commentsMap[comment.ParentCommentID] = append(commentsMap[comment.ParentCommentID], comment)
-		} else {
-			allComments = append(allComments, comment)
-		}
+		
+		allComments = append(allComments, comment)
+		
 
 	}
 
-	var rootComments []Comment
-	for _, parent := range allComments {
-		if commentsMap[tools.StringToInt(parent.ID)] != nil {
-			parent.Replies = append(parent.Replies, commentsMap[tools.StringToInt(parent.ID)]...)
-
-		}
-		rootComments = append(rootComments, parent)
-	}
-	return rootComments, nil
+	return allComments, nil
 }
 
 func (S *Server) GetCommentByID(commentID int, r *http.Request) (Comment, error) {
@@ -166,19 +141,15 @@ func (S *Server) GetCommentByID(commentID int, r *http.Request) (Comment, error)
 	`, currentUserID, commentID)
 
 	var comment Comment
-	var parentCommentID sql.NullInt64
 	var authorName, authorUsername, authorAvatar sql.NullString
 
 	err := row.Scan(
 		&comment.ID,
 		&comment.Content,
 		&comment.CreatedAt,
-		&parentCommentID,
-		&comment.Likes,
 		&authorName,
 		&authorUsername,
 		&authorAvatar,
-		&comment.IsLiked,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -187,19 +158,11 @@ func (S *Server) GetCommentByID(commentID int, r *http.Request) (Comment, error)
 		fmt.Println("get one comment error : ", err)
 		return Comment{}, err
 	}
-
-	// handle nullable parent_id
-	if parentCommentID.Valid {
-		id := int(parentCommentID.Int64)
-		comment.ParentCommentID = id
-	}
-
+	
 	// author
 	comment.Author.Name = authorName.String
 	comment.Author.Username = authorUsername.String
 	comment.Author.Avatar = authorAvatar.String
-
-	comment.Replies = []Comment{}
 
 	return comment, nil
 }
