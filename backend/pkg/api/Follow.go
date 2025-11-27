@@ -97,7 +97,7 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		CreatedAt: time.Now(),
 	}
 
-	if err := S.IsertNotification(notification); err != nil {
+	if err := S.InsertNotification(notification); err != nil {
 		fmt.Println(err)
 		http.Error(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -188,7 +188,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		IsRead:    false,
 		CreatedAt: time.Now(),
 	}
-	if err := S.IsertNotification(notification); err != nil {
+	if err := S.InsertNotification(notification); err != nil {
 		http.Error(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -229,7 +229,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	}
 
-	if err := S.IsertNotification(notification); err != nil {
+	if err := S.InsertNotification(notification); err != nil {
 		fmt.Println(err)
 		http.Error(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return

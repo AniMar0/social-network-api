@@ -58,7 +58,7 @@ func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(notifs)
 }
 
-func (S *Server) IsertNotification(notif Notification) error {
+func (S *Server) InsertNotification(notif Notification) error {
 	_, err := S.db.Exec(`
 		INSERT INTO notifications (user_id, actor_id, type, content, is_read)
 		VALUES (?, ?, ?, ?, ?)
