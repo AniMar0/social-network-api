@@ -57,72 +57,70 @@ func (S *Server) initRoutes() {
 	//user handlers
 	S.mux.HandleFunc("/api/register", S.RegisterHandler)
 	S.mux.HandleFunc("/api/upload-avatar", S.UploadAvatarHandler)
-	S.mux.Handle("/api/user/update", S.AuthMiddleware(http.HandlerFunc(S.UpdateUserHandler)))
+	S.mux.HandleFunc("/api/user/update", S.AuthMiddleware(http.HandlerFunc(S.UpdateUserHandler)))
 
 	//notification handlers
-	S.mux.HandleFunc("/api/notifications", S.GetNotificationsHandler)
-	S.mux.HandleFunc("/api/mark-notification-as-read/", S.MarkNotificationAsReadHandler)
-	S.mux.HandleFunc("/api/mark-all-notification-as-read", S.MarkAllNotificationAsReadHandler)
-	S.mux.HandleFunc("/api/delete-notification/", S.DeleteNotificationHandler)
+	S.mux.HandleFunc("/api/notifications", S.AuthMiddleware(http.HandlerFunc(S.GetNotificationsHandler)))
+	S.mux.HandleFunc("/api/mark-notification-as-read/", S.AuthMiddleware(http.HandlerFunc(S.MarkNotificationAsReadHandler)))
+	S.mux.HandleFunc("/api/mark-all-notification-as-read", S.AuthMiddleware(http.HandlerFunc(S.MarkAllNotificationAsReadHandler)))
+	S.mux.HandleFunc("/api/delete-notification/", S.AuthMiddleware(http.HandlerFunc(S.DeleteNotificationHandler)))
 
 	//Websocket handlers
-	S.mux.HandleFunc("/ws", S.WebSocketHandler)
-
+	S.mux.HandleFunc("/ws", S.AuthMiddleware(http.HandlerFunc(S.WebSocketHandler)))
 	//auth handlers
 	S.mux.HandleFunc("/api/login", S.LoginHandler)
 	S.mux.HandleFunc("/api/logged", S.LoggedHandler)
-	S.mux.HandleFunc("/api/logout", S.LogoutHandler)
-
+	S.mux.HandleFunc("/api/logout", S.AuthMiddleware(http.HandlerFunc(S.LogoutHandler)))
 	//follow handlers
-	S.mux.HandleFunc("/api/follow", S.FollowHandler)
-	S.mux.HandleFunc("/api/unfollow", S.UnfollowHandler)
-	S.mux.HandleFunc("/api/cancel-follow-request", S.CancelFollowRequestHandler)
-	S.mux.HandleFunc("/api/accept-follow-request/", S.AcceptFollowRequestHandler)
-	S.mux.HandleFunc("/api/decline-follow-request/", S.DeclineFollowRequestHandler)
-	S.mux.HandleFunc("/api/send-follow-request", S.SendFollowRequestHandler)
-	S.mux.HandleFunc("/api/get-followers", S.GetFollowersHandler)
+	S.mux.HandleFunc("/api/follow", S.AuthMiddleware(http.HandlerFunc(S.FollowHandler)))
+	S.mux.HandleFunc("/api/unfollow", S.AuthMiddleware(http.HandlerFunc(S.UnfollowHandler)))
+	S.mux.HandleFunc("/api/cancel-follow-request", S.AuthMiddleware(http.HandlerFunc(S.CancelFollowRequestHandler)))
+	S.mux.HandleFunc("/api/accept-follow-request/", S.AuthMiddleware(http.HandlerFunc(S.AcceptFollowRequestHandler)))
+	S.mux.HandleFunc("/api/decline-follow-request/", S.AuthMiddleware(http.HandlerFunc(S.DeclineFollowRequestHandler)))
+	S.mux.HandleFunc("/api/send-follow-request", S.AuthMiddleware(http.HandlerFunc(S.SendFollowRequestHandler)))
+	S.mux.HandleFunc("/api/get-followers", S.AuthMiddleware(http.HandlerFunc(S.GetFollowersHandler)))
 
 	//profile handlers
-	S.mux.HandleFunc("/api/profile/", S.ProfileHandler)
-	S.mux.HandleFunc("/api/me", S.MeHandler)
+	S.mux.HandleFunc("/api/profile/", S.AuthMiddleware(http.HandlerFunc(S.ProfileHandler)))
+	S.mux.HandleFunc("/api/me", S.AuthMiddleware(http.HandlerFunc(S.MeHandler)))
 
 	//post handlers
-	S.mux.HandleFunc("/api/create-post", S.CreatePostHandler)
-	S.mux.HandleFunc("/api/get-posts", S.GetPostsHandler)
-	S.mux.HandleFunc("/api/upload-post-file", S.UploadPostHandler)
+	S.mux.HandleFunc("/api/create-post", S.AuthMiddleware(http.HandlerFunc(S.CreatePostHandler)))
+	S.mux.HandleFunc("/api/get-posts", S.AuthMiddleware(http.HandlerFunc(S.GetPostsHandler)))
+	S.mux.HandleFunc("/api/upload-post-file", S.AuthMiddleware(http.HandlerFunc(S.UploadPostHandler)))
 
 	//comment handlers
-	S.mux.HandleFunc("/api/create-comment", S.CreateCommentHandler)
+	S.mux.HandleFunc("/api/create-comment", S.AuthMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
 	S.mux.HandleFunc("/api/get-comments/", S.GetCommentsHandler)
 	// S.mux.HandleFunc("/api/delete-comment/", S.DeleteCommentHandler)
 
 	//message handlers
-	S.mux.HandleFunc("/api/get-users", S.GetUsersHandler)
+	S.mux.HandleFunc("/api/get-users", S.AuthMiddleware(http.HandlerFunc(S.GetUsersHandler)))
 	S.mux.HandleFunc("/api/get-users/profile/", S.GetUserProfileHandler)
-	S.mux.HandleFunc("/api/make-message/", S.MakeChatHandler)
-	S.mux.HandleFunc("/api/send-message/", S.SendMessageHandler)
-	S.mux.HandleFunc("/api/get-messages/", S.GetMessagesHandler)
-	S.mux.HandleFunc("/api/upload-file", S.UploadFileHandler)
+	S.mux.HandleFunc("/api/make-message/", S.AuthMiddleware(http.HandlerFunc(S.MakeChatHandler)))
+	S.mux.HandleFunc("/api/send-message/", S.AuthMiddleware(http.HandlerFunc(S.SendMessageHandler)))
+	S.mux.HandleFunc("/api/get-messages/", S.AuthMiddleware(http.HandlerFunc(S.GetMessagesHandler)))
+	S.mux.HandleFunc("/api/upload-file", S.AuthMiddleware(http.HandlerFunc(S.UploadFileHandler)))
 
 	// Group handlers
-	S.mux.HandleFunc("/api/groups/create", S.CreateGroupHandler)
+	S.mux.HandleFunc("/api/groups/create", S.AuthMiddleware(http.HandlerFunc(S.CreateGroupHandler)))
 	S.mux.HandleFunc("/api/groups", S.GetGroupsHandler)
 	S.mux.HandleFunc("/api/groups/", S.GetGroupHandler)
-	S.mux.HandleFunc("/api/groups/update", S.UpdateGroupHandler)
-	S.mux.HandleFunc("/api/groups/delete/", S.DeleteGroupHandler)
-	S.mux.HandleFunc("/api/groups/join", S.JoinGroupRequestHandler)
-	S.mux.HandleFunc("/api/groups/invite", S.InviteGroupMemberHandler)
-	S.mux.HandleFunc("/api/groups/requests/accept/", S.AcceptGroupRequestHandler)
-	S.mux.HandleFunc("/api/groups/requests/decline/", S.DeclineGroupRequestHandler)
-	S.mux.HandleFunc("/api/groups/requests", S.GetGroupRequestsHandler)
-	S.mux.HandleFunc("/api/groups/posts/create", S.CreateGroupPostHandler)
+	S.mux.HandleFunc("/api/groups/update", S.AuthMiddleware(http.HandlerFunc(S.UpdateGroupHandler)))
+	S.mux.HandleFunc("/api/groups/delete/", S.AuthMiddleware(http.HandlerFunc(S.DeleteGroupHandler)))
+	S.mux.HandleFunc("/api/groups/join", S.AuthMiddleware(http.HandlerFunc(S.JoinGroupRequestHandler)))
+	S.mux.HandleFunc("/api/groups/invite", S.AuthMiddleware(http.HandlerFunc(S.InviteGroupMemberHandler)))
+	S.mux.HandleFunc("/api/groups/requests/accept/", S.AuthMiddleware(http.HandlerFunc(S.AcceptGroupRequestHandler)))
+	S.mux.HandleFunc("/api/groups/requests/decline/", S.AuthMiddleware(http.HandlerFunc(S.DeclineGroupRequestHandler)))
+	S.mux.HandleFunc("/api/groups/requests", S.AuthMiddleware(http.HandlerFunc(S.GetGroupRequestsHandler)))
+	S.mux.HandleFunc("/api/groups/posts/create", S.AuthMiddleware(http.HandlerFunc(S.CreateGroupPostHandler)))
 	S.mux.HandleFunc("/api/groups/posts/", S.GetGroupPostsHandler)
-	S.mux.HandleFunc("/api/groups/events/create", S.CreateGroupEventHandler)
+	S.mux.HandleFunc("/api/groups/events/create", S.AuthMiddleware(http.HandlerFunc(S.CreateGroupEventHandler)))
 	S.mux.HandleFunc("/api/groups/events/", S.GetGroupEventsHandler)
-	S.mux.HandleFunc("/api/groups/events/respond", S.RespondToGroupEventHandler)
+	S.mux.HandleFunc("/api/groups/events/respond", S.AuthMiddleware(http.HandlerFunc(S.RespondToGroupEventHandler)))
 	S.mux.HandleFunc("/api/groups/chat/", S.GetGroupChatHandler)
-	S.mux.HandleFunc("/api/groups/chat/send", S.SendGroupMessageHandler)
-	S.mux.HandleFunc("/api/groups/members/", S.GetGroupMembersHandler)
+	S.mux.HandleFunc("/api/groups/chat/send", S.AuthMiddleware(http.HandlerFunc(S.SendGroupMessageHandler)))
+	S.mux.HandleFunc("/api/groups/members/", S.AuthMiddleware(http.HandlerFunc(S.GetGroupMembersHandler)))
 }
 
 func (S *Server) initWebSocket() {
