@@ -1,7 +1,7 @@
 package backend
 
 import (
-	tools "SOCIAL-NETWORK/pkg"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -98,13 +98,44 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("avatar")
+	// limit size to 5MB
+	const maxUploadSize = 5 << 20 // 5 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
+	file, _, err := r.FormFile("avatar")
 	if err != nil {
 		http.Error(w, "Cannot read avatar", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
-	avatarPath := "uploads/Avatars/" + uuid.NewV4().String() + tools.GetTheExtension(header.Filename)
+
+	// Read first 512 bytes to detect content type
+	buf := make([]byte, 512)
+	n, _ := file.Read(buf)
+	if n == 0 {
+		http.Error(w, "Empty file", http.StatusBadRequest)
+		return
+	}
+	contentType := http.DetectContentType(buf[:n])
+
+	// allowed MIME types
+	allowed := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/gif":  ".gif",
+		"image/webp": ".webp",
+	}
+
+	ext, ok := allowed[contentType]
+	if !ok {
+		http.Error(w, "Unsupported file type", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	// create a reader that starts with the bytes we've already read
+	reader := io.MultiReader(bytes.NewReader(buf[:n]), file)
+
+	avatarPath := "uploads/Avatars/" + uuid.NewV4().String() + ext
 
 	out, err := os.Create(avatarPath)
 	if err != nil {
@@ -114,8 +145,8 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, file)
-	if err != nil {
+	// copy the full content (including the 512 bytes we buffered)
+	if _, err := io.Copy(out, reader); err != nil {
 		http.Error(w, "Failed to save avatar", http.StatusInternalServerError)
 		return
 	}

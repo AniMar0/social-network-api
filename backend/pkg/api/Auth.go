@@ -90,7 +90,7 @@ func (S *Server) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool) bool {
+func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool, banned bool) bool {
 	NeedToBaned := false
 	if r.Method != Method {
 		NeedToBaned = true
@@ -100,7 +100,7 @@ func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool) b
 		NeedToBaned = true
 	}
 
-	if NeedToBaned {
+	if NeedToBaned || banned {
 		S.db.Exec("INSERT INTO users  WHERE id = ? is_blocked = 1",
 			UserId,
 		)
