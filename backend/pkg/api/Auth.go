@@ -78,3 +78,14 @@ func (S *Server) CheckSession(r *http.Request) (int, string, error) {
 	}
 	return userID, sessionID, nil
 }
+
+func (S *Server) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, _, err := S.CheckSession(r)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
