@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode"
@@ -43,4 +44,16 @@ func IsValidTextLength(text string, min, max int) bool {
 // IsValidAge validates age range
 func IsValidAge(age int) bool {
 	return age >= 13 && age <= 120
+}
+
+// AvatarFiles is Found in the uploads folder
+func AvatarFiles(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	allowedExtensions := []string{".jpg", ".jpeg", ".png", ".gif"}
+	for _, allowedExt := range allowedExtensions {
+		if ext == allowedExt {
+			return true
+		}
+	}
+	return false
 }

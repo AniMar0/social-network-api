@@ -2,7 +2,6 @@ package backend
 
 import (
 	tools "SOCIAL-NETWORK/pkg"
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -43,13 +42,18 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	user.Age = tools.GetAge(user.DateOfBirth)
 
-	if user.Nickname == "" {
+	if !S.ValidateRegisterInput(user) {
+		tools.SendJSONError(w, "Invalid input data", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(user.Nickname) == "" {
 		user.Url = tools.ToUsername(user.Email)
 	} else {
 		user.Url = user.Nickname
 	}
 
-	if err := S.AddUser(user, r.Context()); err != nil {
+	if err := S.AddUser(user); err != nil {
 		fmt.Println(err)
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -183,7 +187,7 @@ func (S *Server) MeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(userData)
 }
 
-func (S *Server) AddUser(user User, ctx context.Context) error {
+func (S *Server) AddUser(user User) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -207,7 +211,7 @@ func (S *Server) AddUser(user User, ctx context.Context) error {
 
 	query := `INSERT INTO users (first_name, last_name, birthdate, age, avatar, nickname, about_me,email,password,gender, url)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err = S.db.ExecContext(ctx, query,
+	_, err = S.db.Exec(query,
 		html.EscapeString(user.FirstName),
 		html.EscapeString(user.LastName),
 		html.EscapeString(user.DateOfBirth),
@@ -301,16 +305,26 @@ func (S *Server) ValidateRegisterInput(user User) bool {
 	if !tools.IsValidEmail(user.Email) {
 		return false
 	}
-	if strings.TrimSpace(user.FirstName) == "" || strings.TrimSpace(user.LastName) == "" || strings.TrimSpace(user.DateOfBirth) == "" {
+	if !tools.IsValidPassword(user.Password) {
 		return false
 	}
-	if strings.TrimSpace(user.Nickname) == "" {
+	if !tools.IsValidTextLength(user.FirstName, 3, 15) {
+		return false
+	}
+	if !tools.IsValidTextLength(user.LastName, 3, 15) {
+		return false
+	}
+	if !tools.IsValidAge(user.Age) {
 		return false
 	}
 	if user.Gender != "Male" && user.Gender != "Female" && user.Gender != "Other" {
 		return false
 	}
 	if strings.TrimSpace(user.Url) == "" {
+		return false
+	}
+
+	if !tools.AvatarFiles(user.AvatarUrl) {
 		return false
 	}
 
