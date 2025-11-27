@@ -130,9 +130,7 @@ func (S *Server) GetUserPosts(userID int, r *http.Request) ([]Post, error) {
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy,
 		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private,
-		(SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) as like_count,
 		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.parent_comment_id IS NULL) as comment_count,
-		EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = ?) as is_liked
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	WHERE p.user_id = ? AND p.group_id IS NULL
@@ -152,8 +150,7 @@ func (S *Server) GetUserPosts(userID int, r *http.Request) ([]Post, error) {
 		var isPrivate, isFollowing bool
 		if err := rows.Scan(
 			&post.ID, &post.Content, &post.Image, &post.CreatedAt, &post.Privacy,
-			&authorID, &firstName, &lastName, &nickname, &avatar, &isPrivate,
-			&post.Likes, &post.Comments, &post.IsLiked,
+			&authorID, &firstName, &lastName, &nickname, &avatar, &isPrivate, &post.Comments,
 		); err != nil {
 			return nil, err
 		}
@@ -182,7 +179,6 @@ func (S *Server) GetUserPosts(userID int, r *http.Request) ([]Post, error) {
 			IsPrivate: isPrivate,
 		}
 		post.UserID = userID
-		post.Shares = 0
 		posts = append(posts, post)
 	}
 
@@ -252,9 +248,7 @@ func (S *Server) GetPostFromID(postID int, r *http.Request) (Post, error) {
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy, p.group_id,
 		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private,
-		(SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) as like_count,
 		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.parent_comment_id IS NULL) as comment_count,
-		EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = ?) as is_liked
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	WHERE p.id = ?
@@ -269,7 +263,7 @@ func (S *Server) GetPostFromID(postID int, r *http.Request) (Post, error) {
 	err := row.Scan(
 		&post.ID, &post.Content, &post.Image, &post.CreatedAt, &post.Privacy, &groupID,
 		&authorID, &firstName, &lastName, &nickname, &avatar, &isPrivate,
-		&post.Likes, &post.Comments, &post.IsLiked,
+		&post.Comments,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -310,7 +304,6 @@ func (S *Server) GetPostFromID(postID int, r *http.Request) (Post, error) {
 	}
 	post.UserID = authorID
 	post.Comments = 0
-	post.Shares = 0
 
 	return post, nil
 
