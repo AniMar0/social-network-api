@@ -67,6 +67,11 @@ func (S *Server) InsertNotification(notif Notification) error {
 }
 
 func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
+	banned := S.ActionMiddleware(r, http.MethodPut, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		return
+	}
 	notificationID := r.URL.Path[len("/api/mark-notification-as-read/"):]
 	_, err := S.db.Exec(`
 		UPDATE notifications
@@ -74,13 +79,15 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 		WHERE id = ?
 	`, notificationID)
 	if err != nil {
-		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		fmt.Println("DB error:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	_, receiverID, err := S.GetSenderAndReceiverIDs(notificationID)
 	if err != nil {
-		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		fmt.Println("DB error:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
