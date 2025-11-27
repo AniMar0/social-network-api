@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -39,8 +40,6 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	
 
 	user.Age = tools.GetAge(user.DateOfBirth)
 
@@ -296,4 +295,25 @@ func (S *Server) GetAllUsers() ([]int, error) {
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+func (S *Server) ValidateRegisterInput(user User) bool {
+	if !strings.Contains(user.Email, "@") || strings.TrimSpace(user.Email) == "" || len(strings.TrimSpace(user.Email)) < 5 {
+		return false
+	}
+	if strings.TrimSpace(user.FirstName) == "" || strings.TrimSpace(user.LastName) == "" || strings.TrimSpace(user.DateOfBirth) == "" {
+		return false
+	}
+	if strings.TrimSpace(user.Nickname) == "" {
+		return false
+	}
+	if user.Gender != "Male" && user.Gender != "Female" && user.Gender != "Other" {
+		return false
+	}
+	if strings.TrimSpace(user.Url) == "" {
+		return false
+	}
+
+
+	return true
 }
