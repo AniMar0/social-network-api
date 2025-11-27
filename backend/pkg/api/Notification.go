@@ -144,13 +144,15 @@ func (S *Server) GetSenderAndReceiverIDs(notificationID string) (string, string,
 }
 
 func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
-
-	currentUserID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	banned := S.ActionMiddleware(r, http.MethodPut, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-	_, err = S.db.Exec(`
+
+	currentUserID, _, _ := S.CheckSession(r)
+
+	_, err := S.db.Exec(`
 		UPDATE notifications
 		SET is_read = 1
 		WHERE user_id = ?
@@ -161,5 +163,4 @@ func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http
 	}
 
 	S.PushNotification("-all-read", currentUserID, Notification{})
-
 }
