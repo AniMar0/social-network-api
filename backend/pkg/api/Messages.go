@@ -149,15 +149,8 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) SendMessage(currentUserID int, message Message) error {
-	var replyTo sql.NullString
-	if message.ReplyTo != nil {
-		replyTo = sql.NullString{String: message.ReplyTo.ID, Valid: true}
-	} else {
-		replyTo = sql.NullString{Valid: false}
-	}
-
-	query := `INSERT INTO messages (sender_id, id, chat_id, content, is_read, type, reply_to) VALUES (?,?, ?, ? , ?, ?, ?)`
-	_, err := S.db.Exec(query, currentUserID, message.ID, message.ChatID, message.Content, message.IsRead, message.Type, replyTo)
+	query := `INSERT INTO messages (sender_id, id, chat_id, content, is_read, type) VALUES (?,?, ?, ? , ?, ?, ?)`
+	_, err := S.db.Exec(query, currentUserID, message.ID, message.ChatID, message.Content, message.IsRead, message.Type)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -191,7 +184,7 @@ func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) GetMessages(currentUserID int, chatID string) ([]Message, error) {
 	var messages []Message
-	query := `SELECT id, sender_id, content, is_read, type, read_at, reply_to FROM messages WHERE chat_id = ?`
+	query := `SELECT id, sender_id, content, is_read, type, read_at FROM messages WHERE chat_id = ?`
 	rows, err := S.db.Query(query, chatID)
 	if err != nil {
 		fmt.Println("Get Messages Query Error : ", err)
@@ -201,14 +194,9 @@ func (S *Server) GetMessages(currentUserID int, chatID string) ([]Message, error
 	for rows.Next() {
 		var message Message
 		var readAt sql.NullTime
-		var replyTo sql.NullString
-		err = rows.Scan(&message.ID, &message.SenderID, &message.Content, &message.IsRead, &message.Type, &readAt, &replyTo)
+		err = rows.Scan(&message.ID, &message.SenderID, &message.Content, &message.IsRead, &message.Type, &readAt,)
 		if readAt.Valid {
 			message.Timestamp = readAt.Time.String()
-		}
-		if replyTo.Valid {
-			ms := S.GetMessageContent(replyTo.String)
-			message.ReplyTo = &ReplyInfo{ID: ms.ID, Content: ms.Content, Type: ms.Type, IsOwn: ms.SenderID == currentUserID}
 		}
 
 		if err != nil {
@@ -311,13 +299,9 @@ SELECT
     nickname,
     name,
     avatar,
-    last_message_id,
     sender_id,
-    last_message,
-    lastMessageType,
     lastInteraction,
     unread_count,
-    last_backend_id,
     chat_id
 FROM cte_ordered_users
 ORDER BY last_backend_id DESC;
@@ -341,12 +325,9 @@ ORDER BY last_backend_id DESC;
 	for rows.Next() {
 		var c Chat
 		var nickname sql.NullString
-		var lastMessage sql.NullString
-		var lastMessageID sql.NullString
 		var senderID sql.NullInt64
 		var lastMessageType sql.NullString
 		var timestamp sql.NullString
-		var lastBackendID sql.NullInt64
 		var chatID int
 
 		if err := rows.Scan(
@@ -354,13 +335,10 @@ ORDER BY last_backend_id DESC;
 			&nickname,
 			&c.Name,
 			&c.Avatar,
-			&lastMessageID,
 			&senderID,
-			&lastMessage,
 			&lastMessageType,
 			&timestamp,
 			&c.UnreadCount,
-			&lastBackendID,
 			&chatID,
 		); err != nil {
 			fmt.Println("Get Users Scan Error : ", err)
@@ -382,18 +360,6 @@ ORDER BY last_backend_id DESC;
 		}
 		if senderID.Valid {
 			c.SenderID = int(senderID.Int64)
-		}
-		if lastMessage.Valid {
-			c.LastMessage = lastMessage.String
-		}
-		if lastMessageType.Valid {
-			c.LastMessageType = lastMessageType.String
-		}
-		if timestamp.Valid {
-			c.Timestamp = timestamp.String
-		}
-		if lastMessageID.Valid {
-			c.LastMessageID = lastMessageID.String
 		}
 
 		
@@ -443,83 +409,6 @@ func (S *Server) GetMessageContent(messageID string) Message {
 	query := `SELECT id, content, type FROM messages WHERE id = ?`
 	S.db.QueryRow(query, messageID).Scan(&message.ID, &message.Content, &message.Type)
 	return message
-}
-
-func (S *Server) UnsendMessageHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
-		return
-	}
-	messageID := r.URL.Path[len("/api/unsend-message/"):]
-	currentUserID, sessionID, err := S.CheckSession(r)
-
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	chatID, err := S.GetChatIDFromMessageID(messageID)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	err = S.UnsendMessage(messageID)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	resiverID := S.GetOtherUserID(currentUserID, tools.StringToInt(chatID))
-
-	message, err := S.GetLastMessageContent(chatID)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	message.ChatID = tools.StringToInt(chatID)
-
-	if len(S.Users[currentUserID]) > 1 {
-		S.PushChatDelete(sessionID, currentUserID, map[string]interface{}{
-			"new_message":    message,
-			"old_message_id": messageID,
-			"chat_id":        chatID,
-		})
-
-	}
-
-	S.PushChatDelete("", resiverID, map[string]interface{}{
-		"new_message":    message,
-		"old_message_id": messageID,
-		"chat_id":        chatID,
-	})
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(message)
-}
-
-func (S *Server) UnsendMessage(messageID string) error {
-	// get message content
-	message := S.GetMessageContent(messageID)
-
-	if message.Type == "image" {
-		// Remove the image file from uploads/Messages folder if it exists and is not empty
-		if message.Content != "" {
-			messageImage := fmt.Sprintf(".%s", message.Content)
-			if err := os.Remove(messageImage); err != nil && !os.IsNotExist(err) {
-				return err
-			}
-		}
-	}
-
-	_, err := S.db.Exec(`DELETE FROM messages WHERE id = ?`, messageID)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	return nil
 }
 
 func (S *Server) GetChatIDFromMessageID(messageID string) (string, error) {

@@ -97,7 +97,6 @@ func (S *Server) initRoutes() {
 	S.mux.HandleFunc("/api/send-message/", S.SendMessageHandler)
 	S.mux.HandleFunc("/api/get-messages/", S.GetMessagesHandler)
 	S.mux.HandleFunc("/api/upoad-file", S.UploadFileHandler)
-	S.mux.HandleFunc("/api/unsend-message/", S.UnsendMessageHandler)
 
 	// Group handlers
 	S.mux.HandleFunc("/api/groups/create", S.CreateGroupHandler)
