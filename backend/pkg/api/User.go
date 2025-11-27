@@ -28,7 +28,7 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.Email = tools.ToLower(user.Email)
-	err, found := S.UserFound(user, r.Context())
+	err, found := S.UserFound(user)
 	if err != nil || found {
 		if found {
 			fmt.Println("User already exists")
@@ -54,7 +54,7 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := S.AddUser(user); err != nil {
-		fmt.Println(err)
+		fmt.Println("Error adding user to DB:", err)
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

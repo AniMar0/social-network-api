@@ -2,7 +2,6 @@ package backend
 
 import (
 	tools "SOCIAL-NETWORK/pkg"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -163,7 +162,8 @@ func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		"user":    user,
 	})
 }
-func (S *Server) UserFound(user User, cnx context.Context) (error, bool) {
+func (S *Server) UserFound(user User) (error, bool) {
+	user = refactorUserData(user)
 	var exists int
 	var query string
 	var args []interface{}
@@ -178,8 +178,8 @@ func (S *Server) UserFound(user User, cnx context.Context) (error, bool) {
 		args = []interface{}{user.Email}
 	}
 
-	err := S.db.QueryRowContext(cnx, query, args...).Scan(&exists)
-	if err != nil{
+	err := S.db.QueryRow(query, args...).Scan(&exists)
+	if err != nil {
 		return err, false
 	}
 	if exists > 0 {
