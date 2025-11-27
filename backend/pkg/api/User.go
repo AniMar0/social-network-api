@@ -298,7 +298,7 @@ func (S *Server) GetAllUsers() ([]int, error) {
 }
 
 func (S *Server) ValidateRegisterInput(user User) bool {
-	if !strings.Contains(user.Email, "@") || strings.TrimSpace(user.Email) == "" || len(strings.TrimSpace(user.Email)) < 5 {
+	if !tools.IsValidEmail(user.Email) {
 		return false
 	}
 	if strings.TrimSpace(user.FirstName) == "" || strings.TrimSpace(user.LastName) == "" || strings.TrimSpace(user.DateOfBirth) == "" {
@@ -313,7 +313,6 @@ func (S *Server) ValidateRegisterInput(user User) bool {
 	if strings.TrimSpace(user.Url) == "" {
 		return false
 	}
-
 
 	return true
 }
