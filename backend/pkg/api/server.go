@@ -91,12 +91,12 @@ func (S *Server) initRoutes() {
 
 	//comment handlers
 	S.mux.HandleFunc("/api/create-comment", S.AuthMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
-	S.mux.HandleFunc("/api/get-comments/", S.GetCommentsHandler)
-	// S.mux.HandleFunc("/api/delete-comment/", S.DeleteCommentHandler)
+	S.mux.HandleFunc("/api/get-comments/", S.AuthMiddleware(http.HandlerFunc(S.GetCommentsHandler)))
+	// S.mux.HandleFunc("/api/delete-comment/", S.AuthMiddleware(http.HandlerFunc(S.DeleteCommentHandler)))
 
 	//message handlers
 	S.mux.HandleFunc("/api/get-users", S.AuthMiddleware(http.HandlerFunc(S.GetUsersHandler)))
-	S.mux.HandleFunc("/api/get-users/profile/", S.GetUserProfileHandler)
+	S.mux.HandleFunc("/api/get-users/profile/", S.AuthMiddleware(http.HandlerFunc(S.GetUserProfileHandler)))
 	S.mux.HandleFunc("/api/make-message/", S.AuthMiddleware(http.HandlerFunc(S.MakeChatHandler)))
 	S.mux.HandleFunc("/api/send-message/", S.AuthMiddleware(http.HandlerFunc(S.SendMessageHandler)))
 	S.mux.HandleFunc("/api/get-messages/", S.AuthMiddleware(http.HandlerFunc(S.GetMessagesHandler)))
@@ -104,8 +104,8 @@ func (S *Server) initRoutes() {
 
 	// Group handlers
 	S.mux.HandleFunc("/api/groups/create", S.AuthMiddleware(http.HandlerFunc(S.CreateGroupHandler)))
-	S.mux.HandleFunc("/api/groups", S.GetGroupsHandler)
-	S.mux.HandleFunc("/api/groups/", S.GetGroupHandler)
+	S.mux.HandleFunc("/api/groups", S.AuthMiddleware(http.HandlerFunc(S.GetGroupsHandler)))
+	S.mux.HandleFunc("/api/groups/", S.AuthMiddleware(http.HandlerFunc(S.GetGroupHandler)))
 	S.mux.HandleFunc("/api/groups/update", S.AuthMiddleware(http.HandlerFunc(S.UpdateGroupHandler)))
 	S.mux.HandleFunc("/api/groups/delete/", S.AuthMiddleware(http.HandlerFunc(S.DeleteGroupHandler)))
 	S.mux.HandleFunc("/api/groups/join", S.AuthMiddleware(http.HandlerFunc(S.JoinGroupRequestHandler)))
@@ -114,11 +114,11 @@ func (S *Server) initRoutes() {
 	S.mux.HandleFunc("/api/groups/requests/decline/", S.AuthMiddleware(http.HandlerFunc(S.DeclineGroupRequestHandler)))
 	S.mux.HandleFunc("/api/groups/requests", S.AuthMiddleware(http.HandlerFunc(S.GetGroupRequestsHandler)))
 	S.mux.HandleFunc("/api/groups/posts/create", S.AuthMiddleware(http.HandlerFunc(S.CreateGroupPostHandler)))
-	S.mux.HandleFunc("/api/groups/posts/", S.GetGroupPostsHandler)
+	S.mux.HandleFunc("/api/groups/posts/", S.AuthMiddleware(http.HandlerFunc(S.GetGroupPostsHandler)))
 	S.mux.HandleFunc("/api/groups/events/create", S.AuthMiddleware(http.HandlerFunc(S.CreateGroupEventHandler)))
-	S.mux.HandleFunc("/api/groups/events/", S.GetGroupEventsHandler)
+	S.mux.HandleFunc("/api/groups/events/", S.AuthMiddleware(http.HandlerFunc(S.GetGroupEventsHandler)))
 	S.mux.HandleFunc("/api/groups/events/respond", S.AuthMiddleware(http.HandlerFunc(S.RespondToGroupEventHandler)))
-	S.mux.HandleFunc("/api/groups/chat/", S.GetGroupChatHandler)
+	S.mux.HandleFunc("/api/groups/chat/", S.AuthMiddleware(http.HandlerFunc(S.GetGroupChatHandler)))
 	S.mux.HandleFunc("/api/groups/chat/send", S.AuthMiddleware(http.HandlerFunc(S.SendGroupMessageHandler)))
 	S.mux.HandleFunc("/api/groups/members/", S.AuthMiddleware(http.HandlerFunc(S.GetGroupMembersHandler)))
 }
