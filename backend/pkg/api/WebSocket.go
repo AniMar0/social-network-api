@@ -16,15 +16,7 @@ type Client struct {
 	SessionID string           `json:"session_id"`
 }
 
-func (S *Server) initWebSocket() {
-	S.upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return r.Header.Get("Origin") == "http://localhost:3000"
-		},
-	}
-}
+
 
 func (S *Server) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	userID, SessionID, ok := S.CheckSession(r)
@@ -32,8 +24,7 @@ func (S *Server) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	S.initWebSocket()
+	
 	conn, err := S.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

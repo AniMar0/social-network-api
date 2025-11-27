@@ -30,7 +30,8 @@ func (S *Server) Run(addr string) {
 
 	S.mux = http.NewServeMux()
 	S.initRoutes()
-
+	S.initWebSocket()
+	
 	S.Users = make(map[int][]*Client)
 
 	// CORS configuration
@@ -122,4 +123,14 @@ func (S *Server) initRoutes() {
 	S.mux.HandleFunc("/api/groups/chat/", S.GetGroupChatHandler)
 	S.mux.HandleFunc("/api/groups/chat/send", S.SendGroupMessageHandler)
 	S.mux.HandleFunc("/api/groups/members/", S.GetGroupMembersHandler)
+}
+
+func (S *Server) initWebSocket() {
+	S.upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return r.Header.Get("Origin") == "http://localhost:3000"
+		},
+	}
 }
