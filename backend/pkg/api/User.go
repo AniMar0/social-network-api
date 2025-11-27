@@ -19,7 +19,7 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
+	S.ActionMiddleware(r, http.MethodPost, false)
 
 	var user User
 	err := json.NewDecoder(r.Body).Decode(&user)
