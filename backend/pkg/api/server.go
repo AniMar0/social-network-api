@@ -101,7 +101,7 @@ func (S *Server) initRoutes() {
 	S.mux.HandleFunc("/api/make-message/", S.MakeChatHandler)
 	S.mux.HandleFunc("/api/send-message/", S.SendMessageHandler)
 	S.mux.HandleFunc("/api/get-messages/", S.GetMessagesHandler)
-	S.mux.HandleFunc("/api/upoad-file", S.UploadFileHandler)
+	S.mux.HandleFunc("/api/upload-file", S.UploadFileHandler)
 
 	// Group handlers
 	S.mux.HandleFunc("/api/groups/create", S.CreateGroupHandler)
