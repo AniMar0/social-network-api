@@ -2,6 +2,7 @@ package backend
 
 import (
 	tools "SOCIAL-NETWORK/pkg"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -79,6 +80,11 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 		WHERE id = ?
 	`, notificationID)
 	if err != nil {
+		if err != sql.ErrNoRows {
+			S.ActionMiddleware(r, http.MethodPut, true, true)
+			http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+			return
+		}
 		fmt.Println("DB error:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
