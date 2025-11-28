@@ -181,8 +181,9 @@ func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(map[string]string{"message": "follow request declined"})
 }
 func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -192,6 +193,17 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Follower) == "" || strings.TrimSpace(req.Following) == "" {
+		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if req.Follower == req.Following || UserID != tools.StringToInt(req.Follower) {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -216,7 +228,8 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		VALUES (?, ?, 'pending')
 	`, req.Follower, req.Following)
 	if err != nil {
-		http.Error(w, "Error inserting follow request: "+err.Error(), http.StatusInternalServerError)
+		fmt.Println("Error inserting follow request:", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
