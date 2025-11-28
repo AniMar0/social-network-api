@@ -68,7 +68,7 @@ func (S *Server) InsertNotification(notif Notification) error {
 }
 
 func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
-	banned := S.ActionMiddleware(r, http.MethodPut, true, false)
+	banned, _ := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
 		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
