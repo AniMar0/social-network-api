@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -200,8 +201,9 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	banned, UserId := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -212,6 +214,17 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(body.Follower) == "" || strings.TrimSpace(body.Following) == "" {
+		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
+		return	
+	}
+
+	if UserId != tools.StringToInt(body.Follower) {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
