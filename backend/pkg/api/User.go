@@ -14,7 +14,7 @@ import (
 )
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	banned := S.ActionMiddleware(r, http.MethodPost, false, false)
+	banned, _ := S.ActionMiddleware(r, http.MethodPost, false, false)
 	if banned {
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
