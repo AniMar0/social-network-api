@@ -110,8 +110,6 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"user": userData,
 	})
-
-	// S.broadcastUserStatusChange()
 }
 
 func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
