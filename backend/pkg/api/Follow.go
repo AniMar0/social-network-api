@@ -447,7 +447,7 @@ func (S *Server) GetFollowersHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-	
+
 	followers, err := S.GetFollowers(currentUser)
 	if err != nil {
 		http.Error(w, "failed to get followers", http.StatusInternalServerError)

@@ -125,7 +125,7 @@ func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy,
 		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private, u.url,
-		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count,
+		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	WHERE p.user_id = ? AND p.group_id IS NULL
@@ -242,11 +242,11 @@ func (S *Server) GetPostFromID(postID int, currentUserID int) (Post, error) {
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy, p.group_id,
 		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private,
-		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.parent_comment_id IS NULL) as comment_count,
+		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	WHERE p.id = ?
-`, currentUserID, postID)
+`, postID)
 
 	var post Post
 	var authorID int

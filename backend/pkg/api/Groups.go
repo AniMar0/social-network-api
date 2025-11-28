@@ -576,12 +576,12 @@ func (S *Server) GetGroupPostsHandler(w http.ResponseWriter, r *http.Request) {
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy,
 		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private,
-		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.parent_comment_id IS NULL) as comment_count,
+		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	WHERE p.group_id = ?
 	ORDER BY p.created_at DESC
-`, userID, groupID)
+`, groupID)
 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -598,7 +598,7 @@ func (S *Server) GetGroupPostsHandler(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(
 			&post.ID, &post.Content, &post.Image, &post.CreatedAt, &post.Privacy,
 			&authorID, &firstName, &lastName, &nickname, &avatar, &isPrivate,
-			&post.Likes, &post.Comments,
+			&post.Comments,
 		); err != nil {
 			continue
 		}

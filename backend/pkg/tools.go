@@ -72,8 +72,3 @@ func ToUsername(s string) string {
 	s = s[:strings.Index(s, "@")] + strconv.Itoa(int(time.Now().Unix()))
 	return s
 }
-
-// Treame space from string
-func trameSpace(s string) string {
-	return strings.TrimSpace(s)
-}

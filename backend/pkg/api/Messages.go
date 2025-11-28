@@ -13,7 +13,7 @@ import (
 )
 
 func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	
+
 	if r.Method != http.MethodGet {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
@@ -194,7 +194,7 @@ func (S *Server) GetMessages(currentUserID int, chatID string) ([]Message, error
 	for rows.Next() {
 		var message Message
 		var readAt sql.NullTime
-		err = rows.Scan(&message.ID, &message.SenderID, &message.Content, &message.IsRead, &message.Type, &readAt,)
+		err = rows.Scan(&message.ID, &message.SenderID, &message.Content, &message.IsRead, &message.Type, &readAt)
 		if readAt.Valid {
 			message.Timestamp = readAt.Time.String()
 		}
@@ -362,10 +362,9 @@ ORDER BY last_backend_id DESC;
 			c.SenderID = int(senderID.Int64)
 		}
 
-		
 		chats = append(chats, c)
 	}
-	
+
 	return chats, nil
 }
 
