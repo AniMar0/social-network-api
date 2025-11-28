@@ -222,7 +222,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 		return	
 	}
 
-	if UserId != tools.StringToInt(body.Follower) {
+	if UserId != tools.StringToInt(body.Follower) || body.Follower == body.Following {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -256,8 +256,9 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (S *Server) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	banned, UserId := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -268,6 +269,17 @@ func (S *Server) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(body.Follower) == "" || strings.TrimSpace(body.Following) == "" {
+		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
+		return	
+	}
+
+	if UserId != tools.StringToInt(body.Follower) || body.Follower == body.Following {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -286,9 +298,6 @@ func (S *Server) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (S *Server) FollowUser(follower, following string) error {
-	if follower == following {
-		return fmt.Errorf("you cannot follow yourself")
-	}
 	query := `
 		INSERT INTO follows (follower_id, following_id) VALUES (?, ?) 
 		ON CONFLICT(follower_id, following_id) DO NOTHING`
