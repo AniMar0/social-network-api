@@ -542,7 +542,7 @@ func (S *Server) CreateGroupPostHandler(w http.ResponseWriter, r *http.Request) 
 	post.CreatedAt = time.Now().Format(time.RFC3339)
 
 	// Fetch full post details
-	fullPost, err := S.GetPostFromID(post.ID, r)
+	fullPost, err := S.GetPostFromID(post.ID, userID)
 	if err != nil {
 		http.Error(w, "DB Error", http.StatusInternalServerError)
 		return
