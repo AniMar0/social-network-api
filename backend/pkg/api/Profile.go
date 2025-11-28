@@ -1,6 +1,7 @@
 package backend
 
 import (
+	tools "SOCIAL-NETWORK/pkg"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -17,18 +18,18 @@ import (
 func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUser := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 	url := strings.TrimPrefix(r.URL.Path, "/api/profile/")
 	if url == "" {
-		http.Error(w, "url required", http.StatusBadRequest)
+		tools.SendJSONError(w, "url required", http.StatusBadRequest)
 		return
 	}
 
 	targetedUserID, err := S.GetUserIdFromUrl(url)
 	if err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
+		tools.SendJSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
 
@@ -39,28 +40,28 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := S.GetUserData("", targetedUserID)
 	if err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
+		tools.SendJSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
 
 	posts, err := S.GetUserPosts(targetedUserID, currentUser)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "error getting posts", http.StatusInternalServerError)
+		tools.SendJSONError(w, "error getting posts", http.StatusInternalServerError)
 		return
 	}
 
 	isFollowing, err := S.IsFollowing(currentUser, user.Url, strconv.Itoa(targetedUserID))
 	if err != nil {
 		fmt.Println("Failed to check following status:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	IsFollower, err := S.IsFollower(currentUser, user.Url, strconv.Itoa(targetedUserID))
 	if err != nil {
 		fmt.Println("Failed to check follower status:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -71,7 +72,7 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 				user.FollowRequestStatus = "none"
 			} else {
 				fmt.Println("Failed to get follow request status:", err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 		}
@@ -96,9 +97,8 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("called AvatarHandeler")
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		tools.SendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, _, err := r.FormFile("avatar")
 	if err != nil {
-		http.Error(w, "Cannot read avatar", http.StatusBadRequest)
+		tools.SendJSONError(w, "Cannot read avatar", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -117,7 +117,7 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 	buf := make([]byte, 512)
 	n, _ := file.Read(buf)
 	if n == 0 {
-		http.Error(w, "Empty file", http.StatusBadRequest)
+		tools.SendJSONError(w, "Empty file", http.StatusBadRequest)
 		return
 	}
 	contentType := http.DetectContentType(buf[:n])
@@ -132,7 +132,7 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 
 	ext, ok := allowed[contentType]
 	if !ok {
-		http.Error(w, "Unsupported file type", http.StatusUnsupportedMediaType)
+		tools.SendJSONError(w, "Unsupported file type", http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -144,14 +144,14 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 	out, err := os.Create(avatarPath)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Cannot save avatar", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Cannot save avatar", http.StatusInternalServerError)
 		return
 	}
 	defer out.Close()
 
 	// copy the full content (including the 512 bytes we buffered)
 	if _, err := io.Copy(out, reader); err != nil {
-		http.Error(w, "Failed to save avatar", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Failed to save avatar", http.StatusInternalServerError)
 		return
 	}
 
@@ -162,20 +162,20 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
-		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
 	var user UserData
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		tools.SendJSONError(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	id, _ := strconv.Atoi(user.ID)
 	err := S.RemoveOldAvatar(id, user.Avatar)
 	if err != nil {
-		http.Error(w, "Failed to remove old avatar", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Failed to remove old avatar", http.StatusInternalServerError)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	`, html.EscapeString(user.FirstName), html.EscapeString(user.LastName), html.EscapeString(user.Nickname), html.EscapeString(user.Email), html.EscapeString(user.DateOfBirth), user.Avatar, html.EscapeString(user.AboutMe), user.IsPrivate, html.EscapeString(user.Url), user.ID,
 	)
 	if err != nil {
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Failed to update user", http.StatusInternalServerError)
 		return
 	}
 

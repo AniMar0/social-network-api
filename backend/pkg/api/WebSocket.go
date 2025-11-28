@@ -1,6 +1,7 @@
 package backend
 
 import (
+	tools "SOCIAL-NETWORK/pkg"
 	"fmt"
 	"net/http"
 
@@ -19,7 +20,7 @@ type Client struct {
 func (S *Server) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -27,7 +28,7 @@ func (S *Server) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := S.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		tools.SendJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

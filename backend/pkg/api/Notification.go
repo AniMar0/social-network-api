@@ -25,7 +25,7 @@ func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request)
 	`, userID)
 	if err != nil {
 		fmt.Println("DB error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -36,7 +36,7 @@ func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request)
 		if err := rows.Scan(&notif.ID, &notif.Type, &notif.Content, &notif.IsRead, &notif.CreatedAt,
 			&notif.ActorID, &notif.FirstName, &notif.LastName, &notif.Avatar); err != nil {
 			fmt.Println("Error scanning row:", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
@@ -69,7 +69,7 @@ func (S *Server) InsertNotification(notif Notification) error {
 func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
-		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 	notificationID := r.URL.Path[len("/api/mark-notification-as-read/"):]
@@ -81,18 +81,18 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		if err != sql.ErrNoRows {
 			S.ActionMiddleware(r, http.MethodPut, true, true)
-			http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+			tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 			return
 		}
 		fmt.Println("DB error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	_, receiverID, err := S.GetSenderAndReceiverIDs(notificationID)
 	if err != nil {
 		fmt.Println("DB error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -108,18 +108,18 @@ func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Reques
 
 	if banned || (receiverID != tools.IntToString(UserId) && senderID == tools.IntToString(UserId)) {
 		S.ActionMiddleware(r, http.MethodDelete, true, true)
-		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			S.ActionMiddleware(r, http.MethodDelete, true, true)
-			http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+			tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 			return
 		}
 		fmt.Println("DB error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Reques
 	`, notificationID)
 	if err != nil {
 		fmt.Println("DB error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -161,7 +161,7 @@ func (S *Server) GetSenderAndReceiverIDs(notificationID string) (string, string,
 func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
-		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http
 		WHERE user_id = ?
 	`, currentUserID)
 	if err != nil {
-		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		tools.SendJSONError(w, "DB error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

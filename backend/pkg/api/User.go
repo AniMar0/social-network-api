@@ -123,22 +123,9 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := S.db.Exec("DELETE FROM sessions WHERE session_id = ? AND user_id = ?", sessionid, UserId)
 	if err != nil {
-		http.Error(w, "Error deleting session", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Error deleting session", http.StatusInternalServerError)
 		return
 	}
-
-	// S.RLock()
-	// if clients, exists := S.clients[username]; exists {
-	// 	for _, client := range clients {
-	// 		client.Send <- map[string]string{
-	// 			"event":   "logout",
-	// 			"message": "Session terminated",
-	// 		}
-	// 		client.Conn.Close()
-	// 	}
-	// 	delete(S.clients, username)
-	// }
-	// S.RUnlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
@@ -149,12 +136,6 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   false,
 	})
-
-	// Broadcast user status change to remaining connected clients
-	// go func() {
-	// 	time.Sleep(100 * time.Millisecond)
-	// 	S.broadcastUserStatusChange()
-	// }()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -171,7 +152,7 @@ func (S *Server) MeHandler(w http.ResponseWriter, r *http.Request) {
 	userData, err := S.GetUserData("", userID)
 	if err != nil {
 		fmt.Println(err)
-		tools.RenderErrorPage(w, r, "User Not Found", http.StatusBadRequest)
+		tools.SendJSONError(w, "User Not Found", http.StatusBadRequest)
 		return
 	}
 
