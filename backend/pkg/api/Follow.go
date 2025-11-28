@@ -27,7 +27,7 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 
 	if strings.TrimSpace(body.FollowerID) == "" || strings.TrimSpace(body.FollowingID) == "" {
 		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
-		return	
+		return
 	}
 
 	if body.FollowerID == body.FollowingID || UserID != tools.StringToInt(body.FollowerID) {
@@ -68,10 +68,8 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "invalid body", http.StatusBadRequest)
 		return
 	}
-	
-	id := r.URL.Path[len("/api/accept-follow-request/"):]
 
-	
+	id := r.URL.Path[len("/api/accept-follow-request/"):]
 
 	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(id)
 	if err != nil {
@@ -139,18 +137,31 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(map[string]string{"message": "follow request accepted"})
 }
 func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
-	var FollowerID, FollowingID string
-	id := r.URL.Path[len("/api/decline-follow-request/"):]
+	var body struct {
+		FollowerID  string `json:"follower"`
+		FollowingID string `json:"following"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
 
+	id := r.URL.Path[len("/api/decline-follow-request/"):]
 	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(id)
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "invalid IDs", http.StatusBadRequest)
+		return
+	}
+
+	if body.FollowerID != FollowerID || body.FollowingID != FollowingID || UserID != tools.StringToInt(FollowingID) {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -247,7 +258,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(body.Follower) == "" || strings.TrimSpace(body.Following) == "" {
 		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
-		return	
+		return
 	}
 
 	if UserId != tools.StringToInt(body.Follower) || body.Follower == body.Following {
@@ -302,7 +313,7 @@ func (S *Server) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(body.Follower) == "" || strings.TrimSpace(body.Following) == "" {
 		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
-		return	
+		return
 	}
 
 	if UserId != tools.StringToInt(body.Follower) || body.Follower == body.Following {
