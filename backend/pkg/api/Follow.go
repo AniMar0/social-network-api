@@ -54,18 +54,35 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(map[string]string{"message": "follow request cancelled"})
 }
 func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
-	var FollowerID, FollowingID string
+	var body struct {
+		FollowerID  string `json:"follower"`
+		FollowingID string `json:"following"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	
 	id := r.URL.Path[len("/api/accept-follow-request/"):]
+
+	
 
 	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(id)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if body.FollowerID != FollowerID || body.FollowingID != FollowingID || UserID != tools.StringToInt(FollowingID) {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -111,7 +128,6 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := S.InsertNotification(notification); err != nil {
-		fmt.Println(err)
 		http.Error(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
