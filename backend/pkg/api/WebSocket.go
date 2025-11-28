@@ -16,15 +16,15 @@ type Client struct {
 	SessionID string           `json:"session_id"`
 }
 
-
-
 func (S *Server) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
-	userID, SessionID, ok := S.CheckSession(r)
-	if ok != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	banned, _ := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-	
+
+	userID, SessionID, _ := S.CheckSession(r)
+
 	conn, err := S.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -171,20 +171,6 @@ func (S *Server) GetUsersStatus() map[string][]int {
 		}
 	}
 	return usersOnlineStatus
-}
-
-func (S *Server) PushChatDelete(SessionID string, userID int, message map[string]interface{}) {
-	S.RLock()
-	defer S.RUnlock()
-	for _, Session := range S.Users[userID] {
-		if Session.SessionID == SessionID {
-			continue
-		}
-		Session.Send <- map[string]interface{}{
-			"channel": "chat-delete",
-			"payload": message,
-		}
-	}
 }
 
 func (S *Server) PushNewChat(userID int, message map[string]interface{}) {
