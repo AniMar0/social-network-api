@@ -11,10 +11,12 @@ import (
 )
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, _ := S.ActionMiddleware(r, http.MethodPost, false, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
+
 	id, _, err := S.CheckSession(r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -27,8 +29,7 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 
 	userData, err := S.GetUserData("", id)
 	if err != nil {
-		fmt.Println(err)
-		tools.RenderErrorPage(w, r, "User Not Found", http.StatusBadRequest)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
