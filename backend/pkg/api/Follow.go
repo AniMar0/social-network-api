@@ -444,12 +444,12 @@ func (S *Server) IsFollower(r *http.Request, followingURL, followingID string) (
 	return isFollowing, nil
 }
 func (S *Server) GetFollowersHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	banned, currentUser := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-
-	currentUser, _, _ := S.CheckSession(r)
+	
 	followers, err := S.GetFollowers(currentUser)
 	if err != nil {
 		http.Error(w, "failed to get followers", http.StatusInternalServerError)
@@ -458,7 +458,6 @@ func (S *Server) GetFollowersHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(followers)
-
 }
 func (S *Server) GetFollowers(User int) ([]Follower, error) {
 	var followers []Follower
