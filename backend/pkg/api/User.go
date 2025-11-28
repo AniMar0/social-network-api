@@ -162,23 +162,20 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) MeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
-	id, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	userData, err := S.GetUserData("", id)
+	userData, err := S.GetUserData("", userID)
 	if err != nil {
 		fmt.Println(err)
 		tools.RenderErrorPage(w, r, "User Not Found", http.StatusBadRequest)
 		return
 	}
+
+	userData.ID = ""
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
