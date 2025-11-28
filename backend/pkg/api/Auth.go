@@ -38,7 +38,7 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 		"loggedIn": true,
 	})
 }
-func (S *Server) MakeToken(Writer http.ResponseWriter, id int) {
+func (S *Server) MakeToken(Writer http.ResponseWriter, id int) error {
 	sessionID := uuid.NewV4().String()
 	expirationTime := time.Now().Add(24 * time.Hour)
 
@@ -46,8 +46,7 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, id int) {
 		sessionID, id, expirationTime)
 	if err != nil {
 		fmt.Println("Error creating session:", err)
-		http.Error(Writer, "Error creating session", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	http.SetCookie(Writer, &http.Cookie{
@@ -59,6 +58,7 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, id int) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   false,
 	})
+	return nil
 }
 func (S *Server) CheckSession(r *http.Request) (int, string, error) {
 

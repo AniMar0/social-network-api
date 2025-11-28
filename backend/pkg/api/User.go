@@ -66,8 +66,9 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
 }
 func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		tools.SendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+	banned, _ := S.ActionMiddleware(r, http.MethodPost, false, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
