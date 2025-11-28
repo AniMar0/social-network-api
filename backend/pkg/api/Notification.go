@@ -9,12 +9,11 @@ import (
 )
 
 func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request) {
-	banned := S.ActionMiddleware(r, http.MethodGet, true, false)
+	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-	userID, _, _ := S.CheckSession(r)
 
 	rows, err := S.db.QueryContext(r.Context(), `
 		SELECT n.id, n.type, n.content, n.is_read, n.created_at,
@@ -159,7 +158,7 @@ func (S *Server) GetSenderAndReceiverIDs(notificationID string) (string, string,
 }
 
 func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
-	banned,currentUserID := S.ActionMiddleware(r, http.MethodPut, true, false)
+	banned, currentUserID := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
 		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
