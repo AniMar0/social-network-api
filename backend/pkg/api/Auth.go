@@ -90,7 +90,7 @@ func (S *Server) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool, banned bool) bool {
+func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool, banned bool) (bool, int) {
 	NeedToBaned := false
 	if r.Method != Method {
 		NeedToBaned = true
@@ -106,5 +106,5 @@ func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool, b
 		)
 	}
 
-	return NeedToBaned
+	return NeedToBaned, UserId
 }
