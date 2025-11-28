@@ -128,7 +128,8 @@ func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Reques
 		WHERE id = ?
 	`, notificationID)
 	if err != nil {
-		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		fmt.Println("DB error:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
