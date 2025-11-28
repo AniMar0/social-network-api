@@ -113,22 +113,15 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		fmt.Println("Method not allowed:", r.Method)
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		http.Error(w, "No session", http.StatusBadRequest)
-		return
-	}
+	UserId, sessionid, _ := S.CheckSession(r)
 
-	var userID int
-	S.db.QueryRow("SELECT user_id FROM sessions WHERE session_id = ?", cookie.Value).Scan(&userID)
-
-	_, err = S.db.Exec("DELETE FROM sessions WHERE session_id = ?", cookie.Value)
+	_, err := S.db.Exec("DELETE FROM sessions WHERE session_id = ? AND user_id = ?", sessionid, UserId)
 	if err != nil {
 		http.Error(w, "Error deleting session", http.StatusInternalServerError)
 		return

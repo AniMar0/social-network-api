@@ -77,6 +77,14 @@ func (S *Server) CheckSession(r *http.Request) (int, string, error) {
 	if err != nil {
 		return 0, "", fmt.Errorf("invalid or expired session")
 	}
+	var banned bool
+	err = S.db.QueryRow(`SELECT is_blocked FROM users WHERE id = ?`, userID).Scan(&banned)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to check user status")
+	}
+	if banned {
+		return 0, "", fmt.Errorf("user is banned")
+	}
 	return userID, sessionID, nil
 }
 
