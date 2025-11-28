@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/twinj/uuid"
@@ -110,10 +111,15 @@ func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool, b
 	}
 
 	if NeedToBaned || banned {
-		S.db.Exec("INSERT INTO users  WHERE id = ? is_blocked = 1",
+		S.db.Exec("UPDATE users SET is_blocked = 1 WHERE id = ?",
 			UserId,
 		)
 	}
 
 	return NeedToBaned, UserId
+}
+
+func (S *Server) ContainsHTML(body []byte) bool {
+	htmlRegex := regexp.MustCompile(`(?i)<\/?\w+[\s\S]*?>`)
+	return htmlRegex.Match(body)
 }

@@ -201,7 +201,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if req.Follower == req.Following || UserID != tools.StringToInt(req.Follower) {
+	if req.Follower == req.Following || UserID != tools.StringToInt(req.Follower) || S.ContainsHTML([]byte(req.Follower)) || S.ContainsHTML([]byte(req.Following)) {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
