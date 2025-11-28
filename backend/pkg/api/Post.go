@@ -124,13 +124,13 @@ func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
 	rows, err := S.db.Query(`
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy,
-		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private,
-		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.parent_comment_id IS NULL) as comment_count,
+		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private, u.url,
+		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count,
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	WHERE p.user_id = ? AND p.group_id IS NULL
 	ORDER BY p.created_at DESC
-`, currentUserID, userID)
+`, userID)
 
 	if err != nil {
 		return nil, err
@@ -141,11 +141,11 @@ func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
 	for rows.Next() {
 		var post Post
 		var authorID int
-		var firstName, lastName, nickname, avatar sql.NullString
+		var firstName, lastName, nickname, avatar, url sql.NullString
 		var isPrivate, isFollowing bool
 		if err := rows.Scan(
 			&post.ID, &post.Content, &post.Image, &post.CreatedAt, &post.Privacy,
-			&authorID, &firstName, &lastName, &nickname, &avatar, &isPrivate, &post.Comments,
+			&authorID, &firstName, &lastName, &nickname, &avatar, &isPrivate, &url, &post.Comments,
 		); err != nil {
 			return nil, err
 		}
@@ -172,6 +172,7 @@ func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
 			Username:  nickname.String,
 			Avatar:    avatar.String,
 			IsPrivate: isPrivate,
+			Url:       url.String,
 		}
 		post.UserID = userID
 		posts = append(posts, post)

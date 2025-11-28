@@ -49,9 +49,8 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error getting posts", http.StatusInternalServerError)
 		return
 	}
-
-	var isFollowing bool
-	isFollowing, err = S.IsFollowing(r, user.Url, "")
+	
+	isFollowing, err := S.IsFollowing(currentUser, user.Url, strconv.Itoa(targetedUserID))
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "Failed to check following status", http.StatusInternalServerError)

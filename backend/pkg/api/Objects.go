@@ -75,6 +75,7 @@ type Author = struct {
 	Username  string `json:"username"`
 	Avatar    string `json:"avatar"`
 	IsPrivate bool   `json:"isPrivate"`
+	Url       string `json:"url"`
 }
 
 type Message struct {
