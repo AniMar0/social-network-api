@@ -42,26 +42,25 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
 	}
-	
+
 	posts, err := S.GetUserPosts(targetedUserID, currentUser)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "error getting posts", http.StatusInternalServerError)
 		return
 	}
-	
+
 	isFollowing, err := S.IsFollowing(currentUser, user.Url, strconv.Itoa(targetedUserID))
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "Failed to check following status", http.StatusInternalServerError)
+		fmt.Println("Failed to check following status:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	var IsFollower bool
-	IsFollower, err = S.IsFollower(r, user.Url, "")
+	IsFollower, err := S.IsFollower(currentUser, user.Url, strconv.Itoa(targetedUserID))
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "Failed to check follower status", http.StatusInternalServerError)
+		fmt.Println("Failed to check follower status:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -71,12 +70,18 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 			if err.Error() == "sql: no rows in result set" {
 				user.FollowRequestStatus = "none"
 			} else {
-				fmt.Println(err)
-				http.Error(w, "Failed to get follow request status", http.StatusInternalServerError)
+				fmt.Println("Failed to get follow request status:", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 		}
 	}
+
+	if IsFollower && !isFollowing && user.IsPrivate {
+		user.FollowRequestStatus = "follow-back"
+	}
+
+	user.ID = ""
 
 	resp := map[string]interface{}{
 		"posts":       posts,

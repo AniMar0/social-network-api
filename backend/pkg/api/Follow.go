@@ -426,8 +426,7 @@ func (S *Server) IsFollowing(followerID int, followingURL, followingID string) (
 
 	return isFollowing, nil
 }
-func (S *Server) IsFollower(r *http.Request, followingURL, followingID string) (bool, error) {
-	followerID, _, _ := S.CheckSession(r)
+func (S *Server) IsFollower(followerID int, followingURL, followingID string) (bool, error) {
 	if followingID == "" {
 		err := S.db.QueryRow(`SELECT id FROM users WHERE url = ?`, followingURL).Scan(&followingID)
 		if err != nil {
