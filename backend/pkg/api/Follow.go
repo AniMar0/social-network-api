@@ -11,8 +11,9 @@ import (
 )
 
 func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 	var body struct {
@@ -21,6 +22,17 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(body.FollowerID) == "" || strings.TrimSpace(body.FollowingID) == "" {
+		http.Error(w, "follower and following cannot be empty", http.StatusBadRequest)
+		return	
+	}
+
+	if body.FollowerID == body.FollowingID || UserID != tools.StringToInt(body.FollowerID) {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
