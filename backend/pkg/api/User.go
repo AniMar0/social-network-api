@@ -92,12 +92,17 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		tools.SendJSONError(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
-	S.MakeToken(w, id)
+	err = S.MakeToken(w, id)
+	if err != nil {
+		fmt.Println("Error creating session token:", err)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	userData, err := S.GetUserData(url, id)
 	if err != nil {
-		fmt.Println(err)
-		tools.SendJSONError(w, "Failed to retrieve user data", http.StatusInternalServerError)
+		fmt.Println("Error retrieving user data:", err)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
