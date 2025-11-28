@@ -159,13 +159,11 @@ func (S *Server) GetSenderAndReceiverIDs(notificationID string) (string, string,
 }
 
 func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
-	banned := S.ActionMiddleware(r, http.MethodPut, true, false)
+	banned,currentUserID := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
 		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-
-	currentUserID, _, _ := S.CheckSession(r)
 
 	_, err := S.db.Exec(`
 		UPDATE notifications
