@@ -105,7 +105,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	Post, err := S.GetPostFromID(post.ID, r)
+	Post, err := S.GetPostFromID(post.ID, userID)
 	if err != nil {
 		http.Error(w, "DB Error", http.StatusInternalServerError)
 		return
@@ -120,12 +120,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Post)
 }
 
-func (S *Server) GetUserPosts(userID int, r *http.Request) ([]Post, error) {
-	currentUserID, _, err := S.CheckSession(r)
-	if err != nil {
-		return nil, err
-	}
-
+func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
 	rows, err := S.db.Query(`
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy,
@@ -155,7 +150,7 @@ func (S *Server) GetUserPosts(userID int, r *http.Request) ([]Post, error) {
 			return nil, err
 		}
 		if post.Privacy == "almost-private" && authorID != currentUserID {
-			isFollowing, err = S.IsFollowing(r, "", strconv.Itoa(authorID))
+			isFollowing, err = S.IsFollowing(currentUserID, "", strconv.Itoa(authorID))
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +203,7 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, userID := range ids {
-		posts, err := S.GetUserPosts(userID, r)
+		posts, err := S.GetUserPosts(userID, userID)
 		if err != nil {
 			fmt.Println(err)
 			http.Error(w, "DB Error", http.StatusInternalServerError)
@@ -241,9 +236,7 @@ func (S *Server) UserAllowedToSeePost(userID int, postID int) (bool, error) {
 	return true, nil
 }
 
-func (S *Server) GetPostFromID(postID int, r *http.Request) (Post, error) {
-	currentUserID, _, _ := S.CheckSession(r)
-
+func (S *Server) GetPostFromID(postID int, currentUserID int) (Post, error) {
 	row := S.db.QueryRow(`
 	SELECT 
 		p.id, p.content, p.image, p.created_at, p.privacy, p.group_id,
@@ -278,7 +271,7 @@ func (S *Server) GetPostFromID(postID int, r *http.Request) (Post, error) {
 
 	// privacy check
 	if post.Privacy == "almost-private" && authorID != currentUserID {
-		isFollowing, err := S.IsFollowing(r, "", strconv.Itoa(authorID))
+		isFollowing, err := S.IsFollowing(currentUserID, "", strconv.Itoa(authorID))
 		if err != nil {
 			return Post{}, err
 		}

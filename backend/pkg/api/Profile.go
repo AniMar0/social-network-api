@@ -15,36 +15,35 @@ import (
 )
 
 func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
+	banned, currentUser := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		http.Error(w, "You are banned from performing this action", http.StatusForbidden)
+		return
+	}
 	url := strings.TrimPrefix(r.URL.Path, "/api/profile/")
-
 	if url == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
 
-	followers, err := S.GetFollowersCount(url)
-	if err != nil {
-		http.Error(w, "error getting followers", http.StatusInternalServerError)
-		return
-	}
-
-	following, err := S.GetFollowingCount(url)
-	if err != nil {
-		http.Error(w, "error getting following", http.StatusInternalServerError)
-		return
-	}
-	user, err := S.GetUserData(url, 0)
+	targetedUserID, err := S.GetUserIdFromUrl(url)
 	if err != nil {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
 	}
 
-	userID, err := strconv.Atoi(user.ID)
-	if err != nil {
-		http.Error(w, "error converting user ID", http.StatusInternalServerError)
+	if targetedUserID == currentUser {
+		http.Redirect(w, r, "/api/me", http.StatusSeeOther)
 		return
 	}
-	posts, err := S.GetUserPosts(userID, r)
+
+	user, err := S.GetUserData("", targetedUserID)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+	
+	posts, err := S.GetUserPosts(targetedUserID, currentUser)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "error getting posts", http.StatusInternalServerError)
@@ -83,8 +82,8 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{
 		"posts":       posts,
 		"user":        user,
-		"followers":   followers,
-		"following":   following,
+		"followers":   user.FollowersCount,
+		"following":   user.FollowingCount,
 		"isfollowing": isFollowing,
 		"isfollower":  IsFollower,
 	}
@@ -242,4 +241,13 @@ func (S *Server) RemoveOldAvatar(userID int, newAvatar string) error {
 	}
 
 	return nil
+}
+
+func (S *Server) GetUserIdFromUrl(url string) (int, error) {
+	var userID int
+	err := S.db.QueryRow(`SELECT id FROM users WHERE url = ?`, url).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
 }

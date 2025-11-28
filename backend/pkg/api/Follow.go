@@ -411,8 +411,7 @@ func (S *Server) GetFollowRequestStatus(r *http.Request, followingURL string) (s
 	}
 	return status, nil
 }
-func (S *Server) IsFollowing(r *http.Request, followingURL, followingID string) (bool, error) {
-	followerID, _, _ := S.CheckSession(r)
+func (S *Server) IsFollowing(followerID int, followingURL, followingID string) (bool, error) {
 	if followingID == "" {
 		err := S.db.QueryRow(`SELECT id FROM users WHERE url = ?`, followingURL).Scan(&followingID)
 		if err != nil {
