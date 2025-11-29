@@ -67,13 +67,18 @@ func (S *Server) MakeChatHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	otherUserID := r.URL.Path[len("/api/make-message/"):]
-
-	if !S.FoundChat(currentUserID, tools.StringToInt(otherUserID)) {
-		S.MakeChat(currentUserID, tools.StringToInt(otherUserID))
+	ID := r.URL.Path[len("/api/make-message/"):]
+	checkOtherUserID, otherUserID := tools.IsNumeric(ID)
+	if !checkOtherUserID {
+		tools.SendJSONError(w, "invalid user ID", http.StatusBadRequest)
+		return
 	}
 
-	chatId := S.GetChatID(currentUserID, tools.StringToInt(otherUserID))
+	if !S.FoundChat(currentUserID, otherUserID) {
+		S.MakeChat(currentUserID, otherUserID)
+	}
+
+	chatId := S.GetChatID(currentUserID, otherUserID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(chatId)
