@@ -169,13 +169,21 @@ func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	id := r.URL.Path[len("/api/decline-follow-request/"):]
-	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(id)
+
+	CheckNotification, notificationID := tools.IsNumeric(id)
+	checkifnumberFollower, followerID := tools.IsNumeric(body.FollowerID)
+	checkifnumberFollowing, followingID := tools.IsNumeric(body.FollowingID)
+	if !CheckNotification || !checkifnumberFollower || !checkifnumberFollowing {
+		tools.SendJSONError(w, "invalid notification ID", http.StatusBadRequest)
+		return
+	}
+	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(notificationID)
 	if err != nil {
 		tools.SendJSONError(w, "invalid IDs", http.StatusBadRequest)
 		return
 	}
 
-	if body.FollowerID != FollowerID || body.FollowingID != FollowingID || UserID != tools.StringToInt(FollowingID) {
+	if followerID != FollowerID || followingID != FollowingID || UserID != FollowingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -192,10 +200,11 @@ func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Requ
 	}
 	S.DeleteNotification(FollowerID, FollowingID, "follow_request")
 
-	S.PushNotification("-read", tools.StringToInt(FollowingID), Notification{})
+	S.PushNotification("-read", FollowingID, Notification{})
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "follow request declined"})
 }
+
 func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {

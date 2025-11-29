@@ -136,7 +136,7 @@ func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Reques
 	S.PushNotification("-delete", tools.StringToInt(receiverID), Notification{})
 }
 
-func (S *Server) DeleteNotification(senderID, resiverID, notificationType string) error {
+func (S *Server) DeleteNotification(senderID, resiverID int, notificationType string) error {
 	_, err := S.db.Exec(`
 		DELETE FROM notifications
 		WHERE actor_id = ? AND user_id = ? AND type = ?
