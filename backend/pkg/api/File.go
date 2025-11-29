@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/twinj/uuid"
 )
@@ -132,6 +133,15 @@ func (S *Server) ProtectedFileHandler(w http.ResponseWriter, r *http.Request) {
 	filePath := r.URL.Query().Get("path")
 	if filePath == "" {
 		tools.SendJSONError(w, "Missing file path", http.StatusBadRequest)
+		return
+	}
+	if strings.Contains(filePath, "..") {
+		tools.SendJSONError(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	if !strings.HasPrefix(filePath, "uploads/") {
+		tools.SendJSONError(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
