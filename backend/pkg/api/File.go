@@ -112,3 +112,38 @@ func (S *Server) UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(fmt.Sprintf(`{"%s": "/%s"}`, respKey, filePath)))
 }
+
+func (S *Server) ProtectedFileHandler(w http.ResponseWriter, r *http.Request) {
+	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		return
+	}
+
+	// api/file?filetype=...&path=uploads/...
+
+	filetype := r.URL.Query().Get("filetype")
+	if filetype == "" {
+		tools.SendJSONError(w, "Missing file type", http.StatusBadRequest)
+		return
+	}
+
+	filePath := r.URL.Query().Get("path")
+	if filePath == "" {
+		tools.SendJSONError(w, "Missing file path", http.StatusBadRequest)
+		return
+	}
+
+	authorized, err := S.IsFileAccessAuthorized(userID, filetype, filePath)
+	if err != nil {
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !authorized {
+		tools.SendJSONError(w, "Unauthorized access to file", http.StatusUnauthorized)
+		return
+	}
+
+	http.ServeFile(w, r, filePath)
+}

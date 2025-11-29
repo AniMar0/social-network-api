@@ -59,7 +59,7 @@ func (S *Server) Run(addr string) {
 
 func (S *Server) initRoutes() {
 	//file handlers
-	S.mux.HandleFunc("/api/file/", S.AuthMiddleware(http.HandlerFunc(S.ProtectedFileHandler)))
+	S.mux.HandleFunc("/api/file", S.AuthMiddleware(http.HandlerFunc(S.ProtectedFileHandler)))
 	S.mux.HandleFunc("/api/upload-file", S.UploadFileHandler)
 
 	//user handlers
