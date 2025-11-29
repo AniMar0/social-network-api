@@ -17,6 +17,7 @@ import (
 )
 
 func (S *Server) UploadPostHandler(w http.ResponseWriter, r *http.Request) {
+	
 	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)

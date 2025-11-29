@@ -113,6 +113,8 @@ func (S *Server) UploadAvatarHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	
+
 	// Read first 512 bytes to detect content type
 	buf := make([]byte, 512)
 	n, _ := file.Read(buf)
