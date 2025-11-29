@@ -108,11 +108,16 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserId := S.ActionMiddleware(r, http.MethodDelete, true, false)
 
-	notificationID := r.URL.Path[len("/api/delete-notification/"):]
+	ID := r.URL.Path[len("/api/delete-notification/"):]
+	checknotificationID, notificationID := tools.IsNumeric(ID)
+	if !checknotificationID {
+		tools.SendJSONError(w, "invalid notification ID", http.StatusBadRequest)
+		return
+	}
 
 	senderID, receiverID, err := S.GetSenderAndReceiverIDs(notificationID)
 
-	if banned || (receiverID != tools.IntToString(UserId) && senderID == tools.IntToString(UserId)) {
+	if banned || (receiverID != UserId && senderID == UserId) {
 		S.ActionMiddleware(r, http.MethodDelete, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -139,7 +144,7 @@ func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	S.PushNotification("-delete", tools.StringToInt(receiverID), Notification{})
+	S.PushNotification("-delete", receiverID, Notification{})
 }
 
 func (S *Server) DeleteNotification(senderID, resiverID int, notificationType string) error {
