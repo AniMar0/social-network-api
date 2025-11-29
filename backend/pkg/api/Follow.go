@@ -446,8 +446,8 @@ func (S *Server) GetFollowRequestStatus(r *http.Request, followingURL string) (s
 	}
 	return status, nil
 }
-func (S *Server) IsFollowing(followerID int, followingURL, followingID string) (bool, error) {
-	if followingID == "" {
+func (S *Server) IsFollowing(followerID int, followingURL string, followingID int) (bool, error) {
+	if followingID == 0 {
 		err := S.db.QueryRow(`SELECT id FROM users WHERE url = ?`, followingURL).Scan(&followingID)
 		if err != nil {
 			return false, err
@@ -461,8 +461,8 @@ func (S *Server) IsFollowing(followerID int, followingURL, followingID string) (
 
 	return isFollowing, nil
 }
-func (S *Server) IsFollower(followerID int, followingURL, followingID string) (bool, error) {
-	if followingID == "" {
+func (S *Server) IsFollower(followerID int, followingURL string, followingID int) (bool, error) {
+	if followingID == 0 {
 		err := S.db.QueryRow(`SELECT id FROM users WHERE url = ?`, followingURL).Scan(&followingID)
 		if err != nil {
 			return false, err

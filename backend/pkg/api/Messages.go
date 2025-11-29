@@ -27,38 +27,56 @@ func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) MakeChatHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, currentUserID := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-	currentUserID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	ID := r.URL.Path[len("/api/make-message/"):]
+
+	ID := r.URL.Path[len("/api/make-chat/"):]
 	checkOtherUserID, otherUserID := tools.IsNumeric(ID)
 	if !checkOtherUserID {
 		tools.SendJSONError(w, "invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	if !S.FoundChat(currentUserID, otherUserID) {
-		S.MakeChat(currentUserID, otherUserID)
+	if currentUserID == otherUserID {
+		tools.SendJSONError(w, "cannot create chat with yourself", http.StatusBadRequest)
+		return
 	}
 
-	chatId := S.GetChatID(currentUserID, otherUserID)
+	follower, _ := S.IsFollower(currentUserID, "", otherUserID)
+	following, _ := S.IsFollowing(currentUserID, "", otherUserID)
+	if !follower && !following {
+		tools.SendJSONError(w, "You can only create chats with your followers or followings", http.StatusForbidden)
+		return
+	}
+
+	if S.FoundChat(currentUserID, otherUserID) {
+		tools.SendJSONError(w, "chat already exists", http.StatusBadRequest)
+		return
+	}
+	chatID, err := S.MakeChat(currentUserID, otherUserID)
+	if err != nil {
+		tools.SendJSONError(w, "failed to create chat", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(chatId)
+	json.NewEncoder(w).Encode(chatID)
 }
 
-func (S *Server) MakeChat(currentUserID, otherUserID int) {
+func (S *Server) MakeChat(currentUserID, otherUserID int) (int, error) {
 	query := `INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)`
-	_, err := S.db.Exec(query, currentUserID, otherUserID)
+	result, err := S.db.Exec(query, currentUserID, otherUserID)
 	if err != nil {
-		fmt.Println(err)
+		return 0, err
 	}
+	ID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return int(ID), nil
 }
 
 func (S *Server) FoundChat(currentUserID, otherUserID int) bool {
@@ -69,7 +87,6 @@ func (S *Server) FoundChat(currentUserID, otherUserID int) bool {
 		if err == sql.ErrNoRows {
 			return false
 		}
-		fmt.Println("FoundChat", err)
 		return false
 	}
 	return true
