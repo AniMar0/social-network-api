@@ -941,7 +941,11 @@ func (S *Server) SendGroupMessageHandler(w http.ResponseWriter, r *http.Request)
 
 func (S *Server) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.URL.Path[len("/api/groups/members/"):]
-	groupID := tools.StringToInt(groupIDStr)
+	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
+	if !checkGroupID {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
 
 	fmt.Println("Getting members for group ID:", groupID)
 	userID, _, err := S.CheckSession(r)
