@@ -575,7 +575,12 @@ func (S *Server) CreateGroupPostHandler(w http.ResponseWriter, r *http.Request) 
 // GetGroupPostsHandler returns posts for a group
 func (S *Server) GetGroupPostsHandler(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.URL.Path[len("/api/groups/posts/"):]
-	groupID := tools.StringToInt(groupIDStr)
+	
+	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
+	if !checkGroupID {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
 
 	userID, _, err := S.CheckSession(r)
 	if err != nil {
