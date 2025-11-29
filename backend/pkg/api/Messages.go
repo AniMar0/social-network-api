@@ -107,7 +107,14 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ChatID := r.URL.Path[len("/api/send-message/"):]
+	ID := r.URL.Path[len("/api/send-message/"):]
+
+	checkChatID, chatID := tools.IsNumeric(ID)
+	if !checkChatID {
+		tools.SendJSONError(w, "invalid chat ID", http.StatusBadRequest)
+		return
+	}
+
 	currentUserID, SessionID, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -122,7 +129,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message.ChatID = tools.StringToInt(ChatID)
+	message.ChatID = chatID
 
 	S.SendMessage(currentUserID, message)
 
