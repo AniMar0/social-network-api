@@ -172,3 +172,14 @@ func (S *Server) isAvatarFileAccessible(userID int, filePath string) (bool, erro
 	return avatarPath == filePath, nil
 }
 
+func (S *Server) isMessageFileAccessible(userID int, filePath string) (bool, error) {
+	var count int
+	err := S.db.QueryRow(`
+		SELECT COUNT(*) FROM messages
+		WHERE image = ? AND (sender_id = ? OR receiver_id = ?)
+	`, filePath, userID, userID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
