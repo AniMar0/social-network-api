@@ -163,3 +163,12 @@ func (S *Server) IsFileAccessAuthorized(userID int, filetype, filePath string) (
 	}
 }
 
+func (S *Server) isAvatarFileAccessible(userID int, filePath string) (bool, error) {
+	var avatarPath string
+	err := S.db.QueryRow("SELECT avatar FROM users WHERE id = ?", userID).Scan(&avatarPath)
+	if err != nil {
+		return false, err
+	}
+	return avatarPath == filePath, nil
+}
+
