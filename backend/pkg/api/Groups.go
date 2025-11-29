@@ -440,11 +440,17 @@ func (S *Server) GetGroupRequestsHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	groupIDStr := r.URL.Query().Get("groupId")
+
+
 	var rows *sql.Rows
 
 	if groupIDStr != "" {
 		// Get requests for a specific group (Creator only)
-		groupID := tools.StringToInt(groupIDStr)
+		checkGroupID, groupID := tools.IsNumeric(groupIDStr)
+		if !checkGroupID {
+			http.Error(w, "Invalid group ID", http.StatusBadRequest)
+			return
+		}
 		var creatorID int
 		S.db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
 		if creatorID != userID {
