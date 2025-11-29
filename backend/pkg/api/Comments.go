@@ -55,9 +55,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(commentID)
-
-	comment, err := S.GetCommentByID(commentID, r)
+	comment, err := S.GetCommentByID(commentID)
 	if err != nil {
 		http.Error(w, "Failed to get comment", http.StatusInternalServerError)
 		return
@@ -137,7 +135,7 @@ func (S *Server) GetComments(postID int, r *http.Request) ([]Comment, error) {
 	return allComments, nil
 }
 
-func (S *Server) GetCommentByID(commentID int, r *http.Request) (Comment, error) {
+func (S *Server) GetCommentByID(commentID int) (Comment, error) {
 	row := S.db.QueryRow(`
 		SELECT 
 			c.id, c.content, c.created_at,
