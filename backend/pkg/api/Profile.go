@@ -94,7 +94,7 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-	banned, _ := S.ActionMiddleware(r, http.MethodPut, true, false)
+	banned, userID := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -107,9 +107,15 @@ func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, _ := strconv.Atoi(user.ID)
+	
+	if id != userID {
+		S.ActionMiddleware(r, http.MethodPut, true, true)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 	err := S.RemoveOldAvatar(id, user.Avatar)
 	if err != nil {
-		tools.SendJSONError(w, "Failed to remove old avatar", http.StatusInternalServerError)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 

@@ -59,7 +59,7 @@ func (S *Server) Run(addr string) {
 
 func (S *Server) initRoutes() {
 	S.mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
-	S.mux.HandleFunc("/api/upload-file", S.AuthMiddleware(http.HandlerFunc(S.UploadFileHandler)))
+	S.mux.HandleFunc("/api/upload-file", S.UploadFileHandler)
 	//user handlers
 	S.mux.HandleFunc("/api/register", S.RegisterHandler)
 	S.mux.HandleFunc("/api/user/update", S.AuthMiddleware(http.HandlerFunc(S.UpdateUserHandler)))
@@ -142,22 +142,23 @@ func (S *Server) UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// user must not be banned
-	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
-	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
-		return
-	}
-
 	// limit size to 5MB
 	const maxUploadSize = 5 << 20
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
-	// type decides: avatar / post / message / comment
+	// type decides: avatar / post / message / comment / avatar-change
 	uploadType := r.FormValue("type")
 	if uploadType == "" {
 		tools.SendJSONError(w, "Missing upload type", http.StatusBadRequest)
 		return
+	}
+
+	if uploadType != "avatar" {
+		_, _, err := S.CheckSession(r)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	// all forms will send the file in same key
@@ -193,7 +194,7 @@ func (S *Server) UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// decide folder based on upload type
 	var folder string
 	switch uploadType {
-	case "avatar":
+	case "avatar" :
 		folder = "uploads/Avatars/"
 	case "post":
 		folder = "uploads/Posts/"
