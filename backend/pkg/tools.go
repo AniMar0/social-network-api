@@ -3,6 +3,7 @@ package tools
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -71,4 +72,9 @@ func ToLower(s string) string {
 func ToUsername(s string) string {
 	s = s[:strings.Index(s, "@")] + strconv.Itoa(int(time.Now().Unix()))
 	return s
+}
+
+func ContainsHTML(body string) bool {
+	htmlRegex := regexp.MustCompile(`(?i)<\/?\w+[\s\S]*?>`)
+	return htmlRegex.MatchString(body)
 }
