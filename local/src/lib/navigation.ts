@@ -114,7 +114,7 @@ export const authUtils = {
   CurrentUser: async () => {
     try {
       const res = await fetch(`${siteConfig.domain}/api/me`, {
-        method: "POST",
+        method: "GET",
         credentials: "include",
       });
       const data = await res.json();
