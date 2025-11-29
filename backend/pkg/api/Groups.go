@@ -320,7 +320,12 @@ func (S *Server) AcceptGroupRequestHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	requestIDStr := r.URL.Path[len("/api/groups/requests/accept/"):]
-	requestID := tools.StringToInt(requestIDStr)
+	
+	checkRequestID, requestID := tools.IsNumeric(requestIDStr)
+	if !checkRequestID {
+		http.Error(w, "Invalid request ID", http.StatusBadRequest)
+		return
+	}
 
 	var req GroupRequest
 	err = S.db.QueryRow("SELECT id, group_id, user_id, requester_id, type, status FROM group_requests WHERE id = ?", requestID).Scan(&req.ID, &req.GroupID, &req.UserID, &req.RequesterID, &req.Type, &req.Status)
