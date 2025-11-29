@@ -135,30 +135,32 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		tools.SendJSONError(w, "Invalid message data", http.StatusBadRequest)
 		return
 	}
-
-	S.SendMessage(currentUserID, message)
+	message.SenderID = currentUserID
+	err = S.SendMessage(message)
+	if err != nil {
+		tools.SendJSONError(w, "Failed to send message", http.StatusInternalServerError)
+		return
+	}
 
 	resiverID := S.GetOtherUserID(currentUserID, message.ChatID)
-	message.SenderID = currentUserID
-
-	if len(S.Users[currentUserID]) > 1 {
-		message.IsOwn = true
-		S.PushMessage(SessionID, currentUserID, message)
-	}
 
 	if S.Users[resiverID] != nil {
 		message.IsOwn = false
 		S.PushMessage("", resiverID, message)
 	}
 
-	message.IsOwn = true
+	if len(S.Users[currentUserID]) > 1 {
+		message.IsOwn = true
+		S.PushMessage(SessionID, currentUserID, message)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(message)
 }
 
-func (S *Server) SendMessage(currentUserID int, message Message) error {
+func (S *Server) SendMessage(message Message) error {
 	query := `INSERT INTO messages (sender_id, id, chat_id, content, is_read, type) VALUES (?,?, ?, ? , ?, ?, ?)`
-	_, err := S.db.Exec(query, currentUserID, message.ID, message.ChatID, html.EscapeString(message.Content), message.IsRead, message.Type)
+	_, err := S.db.Exec(query, message.SenderID, message.ID, message.ChatID, html.EscapeString(message.Content), message.IsRead, message.Type)
 	if err != nil {
 		fmt.Println(err)
 		return err
