@@ -30,7 +30,16 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
+	// validate privacy post
+	authorized, err := S.CheckPostPrivacy(commnet.PostID, 0, currentUserID, "")
+	if err != nil {
+		http.Error(w, "Failed to validate post privacy", http.StatusInternalServerError)
+		return
+	}
+	if !authorized {
+		http.Error(w, "Unauthorized to comment on this post", http.StatusUnauthorized)
+		return
+	}
 
 	// type 'text', 'emoji', 'image', 'gif'
 	

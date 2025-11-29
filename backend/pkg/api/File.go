@@ -241,6 +241,13 @@ func (S *Server) CheckPostPrivacy(postID, AuthorID, currentUserID int, privacy s
 		}
 	}
 
+	if privacy == "" {
+		err := S.db.QueryRow(`SELECT privacy FROM posts WHERE id = ?`, postID).Scan(&privacy)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	switch privacy {
 	case "public":
 		return true, nil
