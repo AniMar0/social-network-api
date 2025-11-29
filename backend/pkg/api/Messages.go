@@ -357,9 +357,9 @@ ORDER BY last_backend_id DESC;
 			fmt.Println("Get Users Scan Error : ", err)
 			return nil, err
 		}
-
+		_, ID := tools.IsNumeric((c.ID))
 		// Online check
-		connections := S.GetConnections(tools.StringToInt(c.ID))
+		connections := S.GetConnections(ID)
 		if len(connections) > 0 {
 			online := true
 			c.IsOnline = &online
