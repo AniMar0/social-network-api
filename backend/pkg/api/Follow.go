@@ -25,12 +25,20 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	checkifnumberFollower, followerID := tools.IsNumeric(body.FollowerID)
+	checkifnumberFollowing, followingID := tools.IsNumeric(body.FollowingID)
+
+	if !checkifnumberFollower || !checkifnumberFollowing {
+		tools.SendJSONError(w, "follower and following must be numeric", http.StatusBadRequest)
+		return
+	}
+
 	if strings.TrimSpace(body.FollowerID) == "" || strings.TrimSpace(body.FollowingID) == "" {
 		tools.SendJSONError(w, "follower and following cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	if body.FollowerID == body.FollowingID || UserID != tools.StringToInt(body.FollowerID) {
+	if body.FollowerID == body.FollowingID || UserID != followerID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -48,7 +56,7 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 	//dellete notification from database
 	S.DeleteNotification(body.FollowerID, body.FollowingID, "follow_request")
 
-	S.PushNotification("-delete", tools.StringToInt(body.FollowingID), Notification{})
+	S.PushNotification("-delete", followingID, Notification{})
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "follow request cancelled"})
