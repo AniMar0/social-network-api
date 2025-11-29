@@ -147,3 +147,19 @@ func (S *Server) ProtectedFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.ServeFile(w, r, filePath)
 }
+
+func (S *Server) IsFileAccessAuthorized(userID int, filetype, filePath string) (bool, error) {
+	switch filetype {
+	case "avatar":
+		return S.isAvatarFileAccessible(userID, filePath)
+	case "message":
+		return S.isMessageFileAccessible(userID, filePath)
+	case "post":
+		return S.isPostFileAccessible(userID, filePath)
+	case "comment":
+		return S.isCommentFileAccessible(userID, filePath)
+	default:
+		return false, fmt.Errorf("unknown file type")
+	}
+}
+

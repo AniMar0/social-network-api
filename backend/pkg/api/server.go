@@ -1,20 +1,14 @@
 package backend
 
 import (
-	tools "SOCIAL-NETWORK/pkg"
 	"SOCIAL-NETWORK/pkg/db/sqlite"
-	"bytes"
 	"database/sql"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
-	"github.com/twinj/uuid"
 )
 
 type Server struct {
@@ -137,5 +131,3 @@ func (S *Server) initWebSocket() {
 		},
 	}
 }
-
-
