@@ -49,26 +49,26 @@ func (S *Server) UploadPostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	userID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
+	banned, userID := S.ActionMiddleware(r, http.MethodPost, false, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
 	var post Post
-	err = json.NewDecoder(r.Body).Decode(&post)
+	err := json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	if strings.TrimSpace(post.Content) == "" && post.Image == nil {
-		http.Error(w, "Content cannot be empty", http.StatusBadRequest)
+		tools.SendJSONError(w, "Content cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if post.Privacy != "public" && post.Privacy != "almost-private" && post.Privacy != "private" {
+		tools.SendJSONError(w, "Invalid privacy setting", http.StatusBadRequest)
 		return
 	}
 
@@ -81,11 +81,16 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Println("Error inserting post:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	lastID, _ := res.LastInsertId()
+	lastID, err := res.LastInsertId()
+	if err != nil {
+		fmt.Println("Error getting last insert ID:", err)
+		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	post.ID = int(lastID)
 	post.UserID = userID
 	post.CreatedAt = time.Now().Format(time.RFC3339)
@@ -99,7 +104,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 			)
 			if err != nil {
 				fmt.Println("Error inserting follower:", err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 		}
@@ -107,7 +112,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	Post, err := S.GetPostFromID(post.ID, userID)
 	if err != nil {
-		http.Error(w, "DB Error", http.StatusInternalServerError)
+		tools.SendJSONError(w, "DB Error", http.StatusInternalServerError)
 		return
 	}
 
