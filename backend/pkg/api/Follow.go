@@ -33,12 +33,12 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if strings.TrimSpace(body.FollowerID) == "" || strings.TrimSpace(body.FollowingID) == "" {
-		tools.SendJSONError(w, "follower and following cannot be empty", http.StatusBadRequest)
+	if followerID == 0 || followingID == 0 {
+		tools.SendJSONError(w, "follower and following cannot be zero", http.StatusBadRequest)
 		return
 	}
 
-	if body.FollowerID == body.FollowingID || UserID != followerID {
+	if followerID == followingID || UserID != followerID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -54,7 +54,7 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	//dellete notification from database
-	S.DeleteNotification(body.FollowerID, body.FollowingID, "follow_request")
+	S.DeleteNotification(followerID, followingID, "follow_request")
 
 	S.PushNotification("-delete", followingID, Notification{})
 
