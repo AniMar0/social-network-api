@@ -145,17 +145,17 @@ func (S *Server) DeleteNotification(senderID, resiverID, notificationType string
 	return err
 }
 
-func (S *Server) GetSenderAndReceiverIDs(notificationID string) (string, string, error) {
+func (S *Server) GetSenderAndReceiverIDs(notificationID int) (int, int, error) {
 	var senderID, receiverID int
 	err := S.db.QueryRow(`
 		SELECT actor_id, user_id
 		FROM notifications
 		WHERE id = ?
-	`, tools.StringToInt(notificationID)).Scan(&senderID, &receiverID)
+	`, notificationID).Scan(&senderID, &receiverID)
 	if err != nil {
-		return "", "", err
+		return 0, 0, err
 	}
-	return tools.IntToString(senderID), tools.IntToString(receiverID), nil
+	return senderID, receiverID, nil
 }
 
 func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
