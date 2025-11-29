@@ -203,10 +203,8 @@ function UserProfile({
     //     headers: { "Content-Type": "application/json" },
     //     credentials: "include",
     //   });
-
     //   const data = await res.json();
     //   const isLiked = data.liked ?? false;
-
     //   // حدّث state
     //   setPostsState((prevPosts) =>
     //     prevPosts.map((post) =>
@@ -351,9 +349,7 @@ function UserProfile({
     //   );
     //   if (!res.ok) throw new Error("Failed to like comment");
     //   const data = await res.json();
-
     //   console.log("Comment liked:", data);
-
     //   // Update the comment likes in the post
     //   setPostsState((prevPosts) =>
     //     prevPosts.map((post) => {

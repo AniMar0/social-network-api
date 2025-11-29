@@ -1212,7 +1212,10 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
                           >
                             <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                               <AvatarImage
-                                src={`${siteConfig.domain}/${member.avatar}` || undefined}
+                                src={
+                                  `${siteConfig.domain}/${member.avatar}` ||
+                                  undefined
+                                }
                                 alt={member.firstName + " " + member.lastName}
                               />
                               <AvatarFallback>
