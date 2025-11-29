@@ -26,36 +26,6 @@ func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(chats)
 }
 
-func (S *Server) GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
-		return
-	}
-
-	currentUserID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	ID := r.URL.Path[len("/api/get-users/profile/"):]
-	checkUserID, userID := tools.IsNumeric(ID)
-	if !checkUserID {
-		tools.SendJSONError(w, "invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	userData, err := S.GetUserData("", S.GetOtherUserID(currentUserID, userID))
-	if err != nil {
-		fmt.Println(err)
-		tools.RenderErrorPage(w, r, "User Not Found", http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userData)
-}
-
 func (S *Server) MakeChatHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)

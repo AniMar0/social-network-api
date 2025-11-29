@@ -96,7 +96,6 @@ func (S *Server) initRoutes() {
 
 	//message handlers
 	S.mux.HandleFunc("/api/get-users", S.AuthMiddleware(http.HandlerFunc(S.GetUsersHandler)))
-	S.mux.HandleFunc("/api/get-users/profile/", S.AuthMiddleware(http.HandlerFunc(S.GetUserProfileHandler)))
 	S.mux.HandleFunc("/api/make-message/", S.AuthMiddleware(http.HandlerFunc(S.MakeChatHandler)))
 	S.mux.HandleFunc("/api/send-message/", S.AuthMiddleware(http.HandlerFunc(S.SendMessageHandler)))
 	S.mux.HandleFunc("/api/get-messages/", S.AuthMiddleware(http.HandlerFunc(S.GetMessagesHandler)))
