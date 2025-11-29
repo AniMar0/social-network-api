@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/twinj/uuid"
 )
@@ -182,4 +183,42 @@ func (S *Server) isMessageFileAccessible(userID int, filePath string) (bool, err
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (S *Server) isPostFileAccessible(userID int, filePath string) (bool, error) {
+	var AuthorID, PostID int
+	var privacy string
+	err := S.db.QueryRow(`	
+		SELECT user_id, id, privacy FROM posts
+		WHERE image = ?
+	`, filePath).Scan(&AuthorID, &PostID, &privacy)
+	if err != nil {
+		return false, err
+	}
+
+	if AuthorID == userID {
+		return true, nil
+	}
+
+	switch privacy {
+	case "public":
+		return true, nil
+	case "almost-private":
+		isFollowing, err := S.IsFollowing(userID, "", strconv.Itoa(AuthorID))
+		if err != nil {
+			return false, err
+		}
+		if !isFollowing {
+			return false, nil
+		}
+	case "private":
+		UserAllowed, err := S.UserAllowedToSeePost(userID, PostID)
+		if err != nil {
+			return false, err
+		}
+		if AuthorID != userID && !UserAllowed {
+			return false, nil
+		}
+	}
+	return AuthorID == userID, nil
 }
