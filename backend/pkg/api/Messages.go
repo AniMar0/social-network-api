@@ -93,8 +93,9 @@ func (S *Server) FoundChat(currentUserID, otherUserID int) bool {
 }
 
 func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -112,6 +113,11 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !S.CheckIfCaneSendMessage(currentUserID, chatID) {
+		tools.SendJSONError(w, "You are not a member of this chat", http.StatusForbidden)
+		return
+	}
+
 	var message Message
 	err = json.NewDecoder(r.Body).Decode(&message)
 	if err != nil {
@@ -121,6 +127,12 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	message.ChatID = chatID
+
+	valid := tools.ValidateMessage(message)
+	if !valid {
+		tools.SendJSONError(w, "Invalid message data", http.StatusBadRequest)
+		return
+	}
 
 	S.SendMessage(currentUserID, message)
 
@@ -143,6 +155,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) SendMessage(currentUserID int, message Message) error {
+
 	query := `INSERT INTO messages (sender_id, id, chat_id, content, is_read, type) VALUES (?,?, ?, ? , ?, ?, ?)`
 	_, err := S.db.Exec(query, currentUserID, message.ID, message.ChatID, message.Content, message.IsRead, message.Type)
 	if err != nil {
@@ -325,4 +338,17 @@ func (S *Server) GetChatIDFromMessageID(messageID string) (string, error) {
 		return "", err
 	}
 	return chatID, nil
+}
+
+func (S *Server) CheckIfCaneSendMessage(currentUserID, chatID int) bool {
+	query := `SELECT id FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)`
+	var id int
+	err := S.db.QueryRow(query, chatID, currentUserID, currentUserID).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		}
+		return false
+	}
+	return true
 }

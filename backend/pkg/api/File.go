@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/twinj/uuid"
@@ -256,7 +255,7 @@ func (S *Server) CheckPostPrivacy(postID, AuthorID, currentUserID int, privacy s
 	case "public":
 		return true, nil
 	case "almost-private":
-		isFollowing, err := S.IsFollowing(currentUserID, "", strconv.Itoa(AuthorID))
+		isFollowing, err := S.IsFollowing(currentUserID, "", AuthorID)
 		if err != nil {
 			return false, err
 		}

@@ -47,14 +47,14 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isFollowing, err := S.IsFollowing(currentUser, user.Url, strconv.Itoa(targetedUserID))
+	isFollowing, err := S.IsFollowing(currentUser, user.Url,targetedUserID)
 	if err != nil {
 		fmt.Println("Failed to check following status:", err)
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	IsFollower, err := S.IsFollower(currentUser, user.Url, strconv.Itoa(targetedUserID))
+	IsFollower, err := S.IsFollower(currentUser, user.Url, targetedUserID)
 	if err != nil {
 		fmt.Println("Failed to check follower status:", err)
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
@@ -107,7 +107,7 @@ func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, _ := strconv.Atoi(user.ID)
-	
+
 	if id != userID {
 		S.ActionMiddleware(r, http.MethodPut, true, true)
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)

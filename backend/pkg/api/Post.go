@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -136,7 +135,7 @@ func (S *Server) GetAllPosts(targetedUserID, currentUserID int) ([]Post, error) 
 			return nil, err
 		}
 		if post.Privacy == "almost-private" && authorID != currentUserID {
-			isFollowing, err = S.IsFollowing(currentUserID, "", strconv.Itoa(authorID))
+			isFollowing, err = S.IsFollowing(currentUserID, "", authorID)
 			if err != nil {
 				return nil, err
 			}
@@ -249,7 +248,7 @@ func (S *Server) GetPostFromID(postID int, currentUserID int) (Post, error) {
 
 	// privacy check
 	if post.Privacy == "almost-private" && authorID != currentUserID {
-		isFollowing, err := S.IsFollowing(currentUserID, "", strconv.Itoa(authorID))
+		isFollowing, err := S.IsFollowing(currentUserID, "", authorID)
 		if err != nil {
 			return Post{}, err
 		}
