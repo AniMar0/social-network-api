@@ -94,7 +94,12 @@ func (S *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 // GetGroupHandler returns a specific group
 func (S *Server) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.URL.Path[len("/api/groups/"):]
-	groupID := tools.StringToInt(groupIDStr)
+	
+	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
+	if !checkGroupID {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
 
 	userID, _, _ := S.CheckSession(r)
 
