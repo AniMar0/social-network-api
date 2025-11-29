@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"strings"
 )
@@ -30,7 +31,6 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validate privacy post
 	authorized, err := S.CheckPostPrivacy(commnet.PostID, 0, currentUserID, "")
 	if err != nil {
 		http.Error(w, "Failed to validate post privacy", http.StatusInternalServerError)
@@ -40,10 +40,14 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized to comment on this post", http.StatusUnauthorized)
 		return
 	}
-
-	// type 'text', 'emoji', 'image', 'gif'
 	
-	
+	if commnet.Type != "text" && tools.ContainsHTML(commnet.Content) {
+		S.ActionMiddleware(r, http.MethodPost, true, true)
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		return
+	} else if commnet.Type == "text" && tools.ContainsHTML(commnet.Content) {
+		commnet.Content = html.EscapeString(commnet.Content)
+	}
 
 	commentID, err := S.CreateComment(currentUserID, commnet)
 	if err != nil {
