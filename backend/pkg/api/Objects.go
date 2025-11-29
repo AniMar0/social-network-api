@@ -117,6 +117,7 @@ type Comment struct {
 		Avatar   string `json:"avatar,omitempty"`
 	} `json:"author,omitempty"`
 	Content   string `json:"content"`
+	Type      string `json:"type"`
 	CreatedAt string `json:"createdAt"`
 }
 

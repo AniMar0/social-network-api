@@ -110,7 +110,7 @@ func (S *Server) CreateComment(userID int, comment CommentRequest) (int, error) 
 func (S *Server) GetComments(postID int) ([]Comment, error) {
 	rows, err := S.db.Query(`
 		SELECT 
-			c.id, c.content, c.created_at,
+			c.id, c.content, c.created_at, c.type,
 			u.first_name || ' ' || u.last_name AS name, 
 			u.nickname, u.avatar
 		FROM comments c
@@ -135,6 +135,7 @@ func (S *Server) GetComments(postID int) ([]Comment, error) {
 			&authorName,
 			&authorUsername,
 			&authorAvatar,
+			&comment.Type,
 		); err != nil {
 			return nil, err
 		}
