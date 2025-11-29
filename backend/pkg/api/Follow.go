@@ -221,12 +221,19 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if strings.TrimSpace(req.Follower) == "" || strings.TrimSpace(req.Following) == "" {
-		tools.SendJSONError(w, "follower and following cannot be empty", http.StatusBadRequest)
+	checkifnumberFollower, followerID := tools.IsNumeric(req.Follower)
+	checkifnumberFollowing, followingID := tools.IsNumeric(req.Following)
+	if !checkifnumberFollower || !checkifnumberFollowing {
+		tools.SendJSONError(w, "follower and following must be numeric", http.StatusBadRequest)
 		return
 	}
 
-	if req.Follower == req.Following || UserID != tools.StringToInt(req.Follower) || S.ContainsHTML([]byte(req.Follower)) || S.ContainsHTML([]byte(req.Following)) {
+	if followerID == 0 || followingID == 0 {
+		tools.SendJSONError(w, "follower and following cannot be zero", http.StatusBadRequest)
+		return
+	}
+
+	if req.Follower == req.Following || UserID != followerID || S.ContainsHTML([]byte(req.Follower)) || S.ContainsHTML([]byte(req.Following)) {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -259,8 +266,8 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	notification := Notification{
-		ID:        tools.StringToInt(req.Following),
-		ActorID:   tools.StringToInt(req.Follower),
+		ID:        followingID,
+		ActorID:   followerID,
 		Type:      "follow_request",
 		Content:   "Follow request",
 		IsRead:    false,
@@ -271,7 +278,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	S.PushNotification("-new", tools.StringToInt(req.Following), notification)
+	S.PushNotification("-new", followingID, notification)
 
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Follow request sent",
