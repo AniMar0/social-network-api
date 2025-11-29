@@ -222,3 +222,43 @@ func (S *Server) isPostFileAccessible(userID int, filePath string) (bool, error)
 	}
 	return AuthorID == userID, nil
 }
+
+func (S *Server) isCommentFileAccessible(userID int, filePath string) (bool, error) {
+	var AuthorPostID, AuthorCommentID, PostID int
+	var privacy string
+	err := S.db.QueryRow(`	
+        SELECT 
+			p.id, p.privacy, p.user_id, c.user_id
+		FROM comments c
+		JOIN posts p ON c.post_id = p.id
+		JOIN users u ON c.user_id = u.id
+        WHERE image = ?
+    `, filePath).Scan(&PostID, &privacy, &AuthorPostID, &AuthorCommentID)
+	if err != nil {
+		return false, err
+	}
+	if AuthorCommentID == userID {
+		return true, nil
+	}
+	switch privacy {
+	case "public":
+		return true, nil
+	case "almost-private":
+		isFollowing, err := S.IsFollowing(userID, "", strconv.Itoa(AuthorPostID))
+		if err != nil {
+			return false, err
+		}
+		if !isFollowing {
+			return false, nil
+		}
+	case "private":
+		UserAllowed, err := S.UserAllowedToSeePost(userID, PostID)
+		if err != nil {
+			return false, err
+		}
+		if AuthorPostID != userID && !UserAllowed {
+			return false, nil
+		}
+	}
+	return AuthorCommentID == userID, nil
+}
