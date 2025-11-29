@@ -177,7 +177,13 @@ func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatID := r.URL.Path[len("/api/get-messages/"):]
+	chatIDstr := r.URL.Path[len("/api/get-messages/"):]
+	checkChatID, chatID := tools.IsNumeric(chatIDstr)
+	if !checkChatID {
+		tools.SendJSONError(w, "invalid chat ID", http.StatusBadRequest)
+		return
+	}
+
 	currentUserID, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -195,7 +201,7 @@ func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(messages)
 }
 
-func (S *Server) GetMessages(currentUserID int, chatID string) ([]Message, error) {
+func (S *Server) GetMessages(currentUserID int, chatID int) ([]Message, error) {
 	var messages []Message
 	query := `SELECT id, sender_id, content, is_read, type, read_at FROM messages WHERE chat_id = ?`
 	rows, err := S.db.Query(query, chatID)
