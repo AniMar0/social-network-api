@@ -48,15 +48,6 @@ func GetTheExtension(fileName string) string {
 	return ext
 }
 
-// confert string to int and int to string functions
-func StringToInt(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-	return i
-}
-
 func IntToString(i int) string {
 	s := strconv.Itoa(i)
 	return s
@@ -77,4 +68,12 @@ func ToUsername(s string) string {
 func ContainsHTML(body string) bool {
 	htmlRegex := regexp.MustCompile(`(?i)<\/?\w+[\s\S]*?>`)
 	return htmlRegex.MatchString(body)
+}
+
+func IsNumeric(s string) (bool, int) {
+	num, err := strconv.Atoi(s)
+	if err != nil {
+		return false, 0
+	}
+	return true, num
 }

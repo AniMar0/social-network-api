@@ -65,14 +65,30 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, currentUserID := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		return
+	}
+	ID := strings.TrimPrefix(r.URL.Path, "/api/get-comments/")
+
+	checkifnumber, postID := tools.IsNumeric(ID)
+	if !checkifnumber {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
 		return
 	}
 
-	postID := strings.TrimPrefix(r.URL.Path, "/api/get-comments/")
+	authorized, err := S.CheckPostPrivacy((postID), 0, currentUserID, "")
+	if err != nil {
+		http.Error(w, "Failed to validate post privacy", http.StatusInternalServerError)
+		return
+	}
+	if !authorized {
+		http.Error(w, "Unauthorized to view comments on this post", http.StatusUnauthorized)
+		return
+	}
 
-	comments, err := S.GetComments(tools.StringToInt(postID), r)
+	comments, err := S.GetComments((postID))
 	if err != nil {
 		http.Error(w, "Failed to get comments", http.StatusInternalServerError)
 		return
@@ -91,7 +107,7 @@ func (S *Server) CreateComment(userID int, comment CommentRequest) (int, error) 
 	return int(lastID), nil
 }
 
-func (S *Server) GetComments(postID int, r *http.Request) ([]Comment, error) {
+func (S *Server) GetComments(postID int) ([]Comment, error) {
 	rows, err := S.db.Query(`
 		SELECT 
 			c.id, c.content, c.created_at,
