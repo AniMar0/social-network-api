@@ -79,14 +79,22 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 
 	id := r.URL.Path[len("/api/accept-follow-request/"):]
 
-	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(id)
+	CheckNotification, notificationID := tools.IsNumeric(id)
+	checkifnumberFollower, followerID := tools.IsNumeric(body.FollowerID)
+	checkifnumberFollowing, followingID := tools.IsNumeric(body.FollowingID)
+	if !CheckNotification || !checkifnumberFollower || !checkifnumberFollowing {
+		tools.SendJSONError(w, "invalid notification ID", http.StatusBadRequest)
+		return
+	}
+
+	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(notificationID)
 	if err != nil {
 		fmt.Println(err)
 		tools.SendJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if body.FollowerID != FollowerID || body.FollowingID != FollowingID || UserID != tools.StringToInt(FollowingID) {
+	if followerID != FollowerID || followingID != FollowingID || UserID != FollowingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -125,8 +133,8 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	notification := Notification{
-		ID:        tools.StringToInt(FollowerID),
-		ActorID:   tools.StringToInt(FollowingID),
+		ID:        (FollowerID),
+		ActorID:   (FollowingID),
 		Type:      "follow",
 		Content:   "Follow Request Accepted",
 		IsRead:    false,
@@ -138,8 +146,8 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	S.PushNotification("-new", tools.StringToInt(FollowerID), notification)
-	S.PushNotification("-read", tools.StringToInt(FollowingID), notification)
+	S.PushNotification("-new", FollowerID, notification)
+	S.PushNotification("-read", FollowingID, notification)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "follow request accepted"})
