@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,25 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
+
+  useEffect(() => {
+    const checkLogged = async () => {
+      try {
+        const res = await fetch("/api/logged", {
+          method: "POST",
+          credentials: "include",
+        })
+        if (!res.ok) return
+        const data = (await res.json()) as { user: unknown | null; loggedIn: boolean }
+        if (data?.loggedIn) {
+          setSuccessMessage("You are already logged in.")
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+    checkLogged()
+  }, [])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -60,12 +79,37 @@ export default function LoginPage() {
     if (!validateForm()) return
 
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setSuccessMessage("Login successful! Redirecting...")
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ identifier: formData.email, password: formData.password }),
+      })
+
+      if (!res.ok) {
+        try {
+          const data = (await res.json()) as { message?: string }
+          const message = data?.message || "Invalid credentials"
+          setErrors((prev) => ({ ...prev, email: message, password: message }))
+        } catch {
+          setErrors((prev) => ({ ...prev, email: "Login failed", password: "Login failed" }))
+        }
+        return
+      }
+
+      const _data = (await res.json()) as { user: unknown }
+      if (_data?.user) {
+        setSuccessMessage("Login successful! Redirecting...")
+        setFormData({ email: "", password: "" })
+      } else {
+        setErrors((prev) => ({ ...prev, email: "Login failed", password: "Login failed" }))
+      }
+    } catch (_) {
+      setErrors((prev) => ({ ...prev, email: "Network error", password: "Network error" }))
+    } finally {
       setIsLoading(false)
-      setFormData({ email: "", password: "" })
-    }, 1200)
+    }
   }
 
   return (
