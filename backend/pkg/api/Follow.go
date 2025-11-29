@@ -301,12 +301,14 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(body.Follower) == "" || strings.TrimSpace(body.Following) == "" {
-		tools.SendJSONError(w, "follower and following cannot be empty", http.StatusBadRequest)
+	checkifnumberFollower, followerID := tools.IsNumeric(body.Follower)
+	checkifnumberFollowing, followingID := tools.IsNumeric(body.Following)
+	if !checkifnumberFollower || !checkifnumberFollowing {
+		tools.SendJSONError(w, "follower and following must be numeric", http.StatusBadRequest)
 		return
 	}
 
-	if UserId != tools.StringToInt(body.Follower) || body.Follower == body.Following {
+	if UserId != followerID || followerID == followingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
@@ -318,8 +320,8 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notification := Notification{
-		ID:        tools.StringToInt(body.Following),
-		ActorID:   tools.StringToInt(body.Follower),
+		ID:        followingID,
+		ActorID:   followerID,
 		Type:      "follow",
 		Content:   "Follow",
 		IsRead:    false,
@@ -332,7 +334,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	S.PushNotification("-new", tools.StringToInt(body.Following), notification)
+	S.PushNotification("-new", followingID, notification)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
