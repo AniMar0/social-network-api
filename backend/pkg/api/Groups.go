@@ -685,7 +685,11 @@ func (S *Server) CreateGroupEventHandler(w http.ResponseWriter, r *http.Request)
 // GetGroupEventsHandler returns events for a group
 func (S *Server) GetGroupEventsHandler(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.URL.Path[len("/api/groups/events/"):]
-	groupID := tools.StringToInt(groupIDStr)
+	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
+	if !checkGroupID {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
 
 	userID, _, err := S.CheckSession(r)
 	if err != nil {
