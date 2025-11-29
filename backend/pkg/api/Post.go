@@ -6,49 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/twinj/uuid"
 )
-
-func (S *Server) UploadPostHandler(w http.ResponseWriter, r *http.Request) {
-	
-	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
-	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
-		return
-	}
-
-	file, header, err := r.FormFile("post")
-	if err != nil {
-		http.Error(w, "Cannot read post", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-	postPath := "uploads/Posts/" + uuid.NewV4().String() + tools.GetTheExtension(header.Filename)
-
-	out, err := os.Create(postPath)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		http.Error(w, "Cannot save post", http.StatusInternalServerError)
-		return
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		http.Error(w, "Failed to save post", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(fmt.Sprintf(`{"postUrl": "/%s"}`, postPath)))
-}
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	banned, userID := S.ActionMiddleware(r, http.MethodPost, false, false)

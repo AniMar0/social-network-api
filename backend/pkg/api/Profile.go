@@ -2,17 +2,13 @@ package backend
 
 import (
 	tools "SOCIAL-NETWORK/pkg"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/twinj/uuid"
 )
 
 func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {

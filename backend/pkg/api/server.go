@@ -92,7 +92,6 @@ func (S *Server) initRoutes() {
 	//post handlers
 	S.mux.HandleFunc("/api/create-post", S.AuthMiddleware(http.HandlerFunc(S.CreatePostHandler)))
 	S.mux.HandleFunc("/api/get-posts", S.AuthMiddleware(http.HandlerFunc(S.GetPostsHandler)))
-	S.mux.HandleFunc("/api/upload-post-file", S.AuthMiddleware(http.HandlerFunc(S.UploadPostHandler)))
 
 	//comment handlers
 	S.mux.HandleFunc("/api/create-comment", S.AuthMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
