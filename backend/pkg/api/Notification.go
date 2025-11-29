@@ -72,7 +72,13 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
-	notificationID := r.URL.Path[len("/api/mark-notification-as-read/"):]
+	ID := r.URL.Path[len("/api/mark-notification-as-read/"):]
+
+	checknotificationID, notificationID := tools.IsNumeric(ID)
+	if !checknotificationID {
+		tools.SendJSONError(w, "invalid notification ID", http.StatusBadRequest)
+		return
+	}
 	_, err := S.db.Exec(`
 		UPDATE notifications
 		SET is_read = 1
@@ -96,7 +102,7 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	S.PushNotification("-read", tools.StringToInt(receiverID), Notification{})
+	S.PushNotification("-read", receiverID, Notification{})
 }
 
 func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Request) {
