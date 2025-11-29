@@ -10,30 +10,33 @@ import (
 )
 
 func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, currentUserID := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
-	currentUserID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	var commnet CommentRequest
 
-	var body struct {
-		Content string `json:"content"`
-		PostID  int    `json:"postId"`
-	}
-
-	err = json.NewDecoder(r.Body).Decode(&body)
+	err := json.NewDecoder(r.Body).Decode(&commnet)
 	if err != nil {
 		fmt.Println("decode error : ", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	commentID, err := S.CreateComment(currentUserID, body.Content, body.PostID)
+	if strings.TrimSpace(commnet.Content) == "" {
+		http.Error(w, "Content cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	
+
+	// type 'text', 'emoji', 'image', 'gif'
+	
+	
+
+	commentID, err := S.CreateComment(currentUserID, commnet)
 	if err != nil {
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
@@ -68,8 +71,8 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(comments)
 }
 
-func (S *Server) CreateComment(userID int, content string, postID int) (int, error) {
-	sqlRes, err := S.db.Exec("INSERT INTO comments (user_id, content, post_id) VALUES (?, ?, ?)", userID, content, postID)
+func (S *Server) CreateComment(userID int, comment CommentRequest) (int, error) {
+	sqlRes, err := S.db.Exec("INSERT INTO comments (user_id, content, post_id, type) VALUES (?, ?, ?, ?)", userID, comment.Content, comment.PostID, comment.Type)
 	if err != nil {
 		return 0, err
 	}
@@ -108,14 +111,13 @@ func (S *Server) GetComments(postID int, r *http.Request) ([]Comment, error) {
 		); err != nil {
 			return nil, err
 		}
-		
+
 		// author
 		comment.Author.Name = authorName.String
 		comment.Author.Username = authorUsername.String
 		comment.Author.Avatar = authorAvatar.String
-		
+
 		allComments = append(allComments, comment)
-		
 
 	}
 
@@ -151,7 +153,7 @@ func (S *Server) GetCommentByID(commentID int, r *http.Request) (Comment, error)
 		fmt.Println("get one comment error : ", err)
 		return Comment{}, err
 	}
-	
+
 	// author
 	comment.Author.Name = authorName.String
 	comment.Author.Username = authorUsername.String

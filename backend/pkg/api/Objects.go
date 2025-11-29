@@ -20,23 +20,23 @@ type User struct {
 }
 
 type UserData struct {
-	ID                  string  `json:"id"`
-	FirstName           string  `json:"firstName"`
-	LastName            string  `json:"lastName"`
+	ID                  string `json:"id"`
+	FirstName           string `json:"firstName"`
+	LastName            string `json:"lastName"`
 	Nickname            string `json:"nickname,omitempty"`
-	Email               string  `json:"email"`
-	DateOfBirth         string  `json:"dateOfBirth"`
+	Email               string `json:"email"`
+	DateOfBirth         string `json:"dateOfBirth"`
 	Avatar              string `json:"avatar,omitempty"`
 	AboutMe             string `json:"aboutMe,omitempty"`
-	Age                 int     `json:"age"`
-	IsPrivate           bool    `json:"isPrivate"`
-	FollowersCount      int     `json:"followersCount"`
-	FollowingCount      int     `json:"followingCount"`
-	PostsCount          int     `json:"postsCount"`
-	JoinedDate          string  `json:"joinedDate"`
-	Url                 string  `json:"url"`
-	Isfollowing         bool    `json:"isfollowing"`
-	FollowRequestStatus string  `json:"followRequestStatus"`
+	Age                 int    `json:"age"`
+	IsPrivate           bool   `json:"isPrivate"`
+	FollowersCount      int    `json:"followersCount"`
+	FollowingCount      int    `json:"followingCount"`
+	PostsCount          int    `json:"postsCount"`
+	JoinedDate          string `json:"joinedDate"`
+	Url                 string `json:"url"`
+	Isfollowing         bool   `json:"isfollowing"`
+	FollowRequestStatus string `json:"followRequestStatus"`
 }
 
 type LoginUser struct {
@@ -79,26 +79,26 @@ type Author = struct {
 }
 
 type Message struct {
-	ID        string     `json:"id"`
-	ChatID    int        `json:"chat_id"`
-	SenderID  int        `json:"sender_id"`
-	Content   string     `json:"content"`
-	Type      string     `json:"type"`
-	IsRead    bool       `json:"isRead"`
-	IsOwn     bool       `json:"isOwn"`
-	Timestamp string     `json:"timestamp"`
+	ID        string `json:"id"`
+	ChatID    int    `json:"chat_id"`
+	SenderID  int    `json:"sender_id"`
+	Content   string `json:"content"`
+	Type      string `json:"type"`
+	IsRead    bool   `json:"isRead"`
+	IsOwn     bool   `json:"isOwn"`
+	Timestamp string `json:"timestamp"`
 }
 
 type Chat struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	UserID          int    `json:"userId,omitempty"`
-	SenderID        int    `json:"sender_id"`
-	Username        string `json:"username"`
-	Avatar          string `json:"avatar"`
-	Timestamp       string `json:"timestamp"`
-	UnreadCount     int    `json:"unreadCount"`
-	IsOnline        *bool  `json:"isOnline,omitempty"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	UserID      int    `json:"userId,omitempty"`
+	SenderID    int    `json:"sender_id"`
+	Username    string `json:"username"`
+	Avatar      string `json:"avatar"`
+	Timestamp   string `json:"timestamp"`
+	UnreadCount int    `json:"unreadCount"`
+	IsOnline    *bool  `json:"isOnline,omitempty"`
 }
 
 type Follower struct {
@@ -110,14 +110,20 @@ type Follower struct {
 }
 
 type Comment struct {
-	ID              string `json:"id"`
-	Author          struct {
+	ID     string `json:"id"`
+	Author struct {
 		Name     string `json:"name,omitempty"`
 		Username string `json:"username,omitempty"`
 		Avatar   string `json:"avatar,omitempty"`
 	} `json:"author,omitempty"`
-	Content   string    `json:"content"`
-	CreatedAt string    `json:"createdAt"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type CommentRequest struct {
+	PostID  int    `json:"postId"`
+	Content string `json:"content"`
+	Type    string `json:"type"`
 }
 
 type Group struct {

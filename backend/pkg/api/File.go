@@ -210,27 +210,7 @@ func (S *Server) isPostFileAccessible(userID int, filePath string) (bool, error)
 		return true, nil
 	}
 
-	switch privacy {
-	case "public":
-		return true, nil
-	case "almost-private":
-		isFollowing, err := S.IsFollowing(userID, "", strconv.Itoa(AuthorID))
-		if err != nil {
-			return false, err
-		}
-		if !isFollowing {
-			return false, nil
-		}
-	case "private":
-		UserAllowed, err := S.UserAllowedToSeePost(userID, PostID)
-		if err != nil {
-			return false, err
-		}
-		if AuthorID != userID && !UserAllowed {
-			return false, nil
-		}
-	}
-	return AuthorID == userID, nil
+	return S.CheckPostPrivacy(PostID, AuthorID, userID, privacy)
 }
 
 func (S *Server) isCommentFileAccessible(userID int, filePath string) (bool, error) {
@@ -250,11 +230,22 @@ func (S *Server) isCommentFileAccessible(userID int, filePath string) (bool, err
 	if AuthorCommentID == userID {
 		return true, nil
 	}
+	return S.CheckPostPrivacy(PostID, AuthorPostID, userID, privacy)
+}
+
+func (S *Server) CheckPostPrivacy(postID, AuthorID, currentUserID int, privacy string) (bool, error) {
+	if AuthorID == 0 {
+		err := S.db.QueryRow(`SELECT user_id FROM posts WHERE id = ?`, postID).Scan(&AuthorID)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	switch privacy {
 	case "public":
 		return true, nil
 	case "almost-private":
-		isFollowing, err := S.IsFollowing(userID, "", strconv.Itoa(AuthorPostID))
+		isFollowing, err := S.IsFollowing(currentUserID, "", strconv.Itoa(AuthorID))
 		if err != nil {
 			return false, err
 		}
@@ -262,13 +253,13 @@ func (S *Server) isCommentFileAccessible(userID int, filePath string) (bool, err
 			return false, nil
 		}
 	case "private":
-		UserAllowed, err := S.UserAllowedToSeePost(userID, PostID)
+		UserAllowed, err := S.UserAllowedToSeePost(currentUserID, postID)
 		if err != nil {
 			return false, err
 		}
-		if AuthorPostID != userID && !UserAllowed {
+		if AuthorID != currentUserID && !UserAllowed {
 			return false, nil
 		}
 	}
-	return AuthorCommentID == userID, nil
+	return AuthorID == currentUserID, nil
 }
