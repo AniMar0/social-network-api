@@ -159,8 +159,8 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) SendMessage(message Message) error {
-	query := `INSERT INTO messages (sender_id, id, chat_id, content, is_read, type) VALUES (?,?, ?, ? , ?, ?, ?)`
-	_, err := S.db.Exec(query, message.SenderID, message.ID, message.ChatID, html.EscapeString(message.Content), message.IsRead, message.Type)
+	query := `INSERT INTO messages (sender_id, id, chat_id, content, type) VALUES (?,?, ?, ? , ?, ?, ?)`
+	_, err := S.db.Exec(query, message.SenderID, message.ID, message.ChatID, html.EscapeString(message.Content), message.Type)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -169,8 +169,9 @@ func (S *Server) SendMessage(message Message) error {
 }
 
 func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
+	banned, currentUserID := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -181,9 +182,8 @@ func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentUserID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	if !S.CheckIfCaneSendMessage(currentUserID, chatID) {
+		tools.SendJSONError(w, "You are not a member of this chat", http.StatusForbidden)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) GetMessages(currentUserID int, chatID int) ([]Message, error) {
 	var messages []Message
-	query := `SELECT id, sender_id, content, is_read, type, read_at FROM messages WHERE chat_id = ?`
+	query := `SELECT id, sender_id, content, type FROM messages WHERE chat_id = ?`
 	rows, err := S.db.Query(query, chatID)
 	if err != nil {
 		fmt.Println("Get Messages Query Error : ", err)
@@ -209,12 +209,7 @@ func (S *Server) GetMessages(currentUserID int, chatID int) ([]Message, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var message Message
-		var readAt sql.NullTime
-		err = rows.Scan(&message.ID, &message.SenderID, &message.Content, &message.IsRead, &message.Type, &readAt)
-		if readAt.Valid {
-			message.Timestamp = readAt.Time.String()
-		}
-
+		err = rows.Scan(&message.ID, &message.SenderID, &message.Content, &message.Type)
 		if err != nil {
 			fmt.Println("Get Messages Scan Error : ", err)
 			return nil, err

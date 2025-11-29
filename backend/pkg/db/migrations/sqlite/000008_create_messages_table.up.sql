@@ -6,8 +6,6 @@ CREATE TABLE messages (
     content TEXT NOT NULL,
     type TEXT CHECK(type IN ('text', 'emoji')),
     is_deleted BOOLEAN DEFAULT 0,
-    is_read BOOLEAN DEFAULT 0,
-    read_at TIMESTAMP DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(chat_id) REFERENCES chats(id),
     FOREIGN KEY(sender_id) REFERENCES users(id)

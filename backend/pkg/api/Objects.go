@@ -84,7 +84,6 @@ type Message struct {
 	SenderID  int    `json:"sender_id"`
 	Content   string `json:"content"`
 	Type      string `json:"type"`
-	IsRead    bool   `json:"isRead"`
 	IsOwn     bool   `json:"isOwn"`
 	Timestamp string `json:"timestamp"`
 }
