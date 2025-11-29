@@ -44,9 +44,14 @@ func (S *Server) GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatid := r.URL.Path[len("/api/get-users/profile/"):]
+	ID := r.URL.Path[len("/api/get-users/profile/"):]
+	checkUserID, userID := tools.IsNumeric(ID)
+	if !checkUserID {
+		tools.SendJSONError(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
 
-	userData, err := S.GetUserData("", S.GetOtherUserID(currentUserID, tools.StringToInt(chatid)))
+	userData, err := S.GetUserData("", S.GetOtherUserID(currentUserID, userID))
 	if err != nil {
 		fmt.Println(err)
 		tools.RenderErrorPage(w, r, "User Not Found", http.StatusBadRequest)
