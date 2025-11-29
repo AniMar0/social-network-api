@@ -42,16 +42,15 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.Age = tools.GetAge(user.DateOfBirth)
-
-	if !S.ValidateRegisterInput(user) {
-		tools.SendJSONError(w, "Invalid input data", http.StatusBadRequest)
-		return
-	}
-
 	if strings.TrimSpace(user.Nickname) == "" {
 		user.Url = tools.ToUsername(user.Email)
 	} else {
 		user.Url = user.Nickname
+	}
+
+	if !S.ValidateRegisterInput(user) {
+		tools.SendJSONError(w, "Invalid input data", http.StatusBadRequest)
+		return
 	}
 
 	if err := S.AddUser(user); err != nil {
@@ -265,28 +264,36 @@ func (S *Server) GetAllUsers() ([]int, error) {
 
 func (S *Server) ValidateRegisterInput(user User) bool {
 	if !tools.IsValidEmail(user.Email) {
+		fmt.Println("Invalid email:", user.Email)
 		return false
 	}
 	if !tools.IsValidPassword(user.Password) {
+		fmt.Println("Invalid password:", user.Password)
 		return false
 	}
 	if !tools.IsValidTextLength(user.FirstName, 3, 15) {
+		fmt.Println("Invalid first name length:", user.FirstName)
 		return false
 	}
 	if !tools.IsValidTextLength(user.LastName, 3, 15) {
+		fmt.Println("Invalid last name length:", user.LastName)
 		return false
 	}
 	if !tools.IsValidAge(user.Age) {
+		fmt.Println("Invalid age:", user.Age)
 		return false
 	}
-	if user.Gender != "Male" && user.Gender != "Female" && user.Gender != "Other" {
+	if user.Gender != "male" && user.Gender != "female" {
+		fmt.Println("Invalid gender:", user.Gender)
 		return false
 	}
 	if strings.TrimSpace(user.Url) == "" {
+		fmt.Println("Invalid URL:", user.Url)
 		return false
 	}
 
 	if !tools.AvatarFiles(user.AvatarUrl) {
+		fmt.Println("Invalid avatar URL:", user.AvatarUrl)
 		return false
 	}
 
