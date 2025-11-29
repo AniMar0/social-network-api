@@ -20,6 +20,15 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 
 	id, _, err := S.CheckSession(r)
 	if err != nil {
+		if err.Error() == "user is banned" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"user":     nil,
+				"loggedIn": false,
+				"banned":   true,
+			})
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"user":     nil,
@@ -84,6 +93,7 @@ func (S *Server) CheckSession(r *http.Request) (int, string, error) {
 		return 0, "", fmt.Errorf("failed to check user status")
 	}
 	if banned {
+		S.db.Exec("DELETE FROM sessions WHERE session_id = ?", sessionID)
 		return 0, "", fmt.Errorf("user is banned")
 	}
 	return userID, sessionID, nil

@@ -100,6 +100,10 @@ export const authUtils = {
       }
 
       const data = await res.json();
+      if (data.banned) {
+        window.location.href = "/banned";
+        return { loggedIn: false, user: null };
+      }
       return { loggedIn: data.loggedIn, user: data.user };
     } catch (err) {
       console.error("Error checking auth:", err);

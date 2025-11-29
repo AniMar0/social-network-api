@@ -263,9 +263,14 @@ export function AuthForm() {
           })
           .catch((err) => {
             console.error(err);
+            const errorMessage = String(err.message || err);
+            if (errorMessage.includes("User is banned")) {
+              router.push("/banned");
+              return;
+            }
             setErrors((prev) => ({
               ...prev,
-              general: String(err.message || err),
+              general: errorMessage,
             }));
           });
       } else {
