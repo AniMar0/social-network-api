@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"strings"
 )
 
 func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +130,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	message.ChatID = chatID
 
-	valid := tools.ValidateMessage(message)
+	valid := S.ValidateMessage(message)
 	if !valid {
 		tools.SendJSONError(w, "Invalid message data", http.StatusBadRequest)
 		return
@@ -155,9 +157,8 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) SendMessage(currentUserID int, message Message) error {
-
 	query := `INSERT INTO messages (sender_id, id, chat_id, content, is_read, type) VALUES (?,?, ?, ? , ?, ?, ?)`
-	_, err := S.db.Exec(query, currentUserID, message.ID, message.ChatID, message.Content, message.IsRead, message.Type)
+	_, err := S.db.Exec(query, currentUserID, message.ID, message.ChatID, html.EscapeString(message.Content), message.IsRead, message.Type)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -348,6 +349,16 @@ func (S *Server) CheckIfCaneSendMessage(currentUserID, chatID int) bool {
 		if err == sql.ErrNoRows {
 			return false
 		}
+		return false
+	}
+	return true
+}
+
+func (S *Server) ValidateMessage(message Message) bool {
+	if message.Type != "text" && message.Type != "emoji" {
+		return false
+	}
+	if message.Type == "text" && len(strings.TrimSpace(message.Content)) == 0 {
 		return false
 	}
 	return true
