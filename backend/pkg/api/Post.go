@@ -17,8 +17,9 @@ import (
 )
 
 func (S *Server) UploadPostHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 
@@ -125,8 +126,23 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Post)
 }
 
-func (S *Server) GetAllPosts(currentUserID int) ([]Post, error) {
-	rows, err := S.db.Query(`
+func (S *Server) GetAllPosts(targetedUserID, currentUserID int) ([]Post, error) {
+	qery := ``
+	args := []interface{}{}
+	if targetedUserID != 0 {
+		qery = `
+	SELECT 
+			p.id, p.content, p.image, p.created_at, p.privacy,
+			u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private, u.url,
+			(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		WHERE p.user_id = ? AND p.group_id IS NULL
+		ORDER BY p.id DESC
+	`
+		args = append(args, targetedUserID)
+	} else {
+		qery = `
 	SELECT 
 			p.id, p.content, p.image, p.created_at, p.privacy,
 			u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private, u.url,
@@ -135,7 +151,9 @@ func (S *Server) GetAllPosts(currentUserID int) ([]Post, error) {
 		JOIN users u ON p.user_id = u.id
 		WHERE p.group_id IS NULL
 		ORDER BY p.id DESC
-`)
+	`
+	}
+	rows, err := S.db.Query(qery, args...)
 
 	if err != nil {
 		return nil, err
@@ -202,7 +220,7 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var allPosts []Post
-	posts, err := S.GetAllPosts(userID)
+	posts, err := S.GetAllPosts(0, userID)
 	if err != nil {
 		fmt.Println("GetPostsHandler GetUserPosts error : ", err)
 		tools.SendJSONError(w, "DB Error", http.StatusInternalServerError)

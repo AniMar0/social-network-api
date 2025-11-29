@@ -44,7 +44,7 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := S.GetUserPosts(targetedUserID, currentUser)
+	posts, err := S.GetAllPosts(targetedUserID, currentUser)
 	if err != nil {
 		fmt.Println(err)
 		tools.SendJSONError(w, "error getting posts", http.StatusInternalServerError)
