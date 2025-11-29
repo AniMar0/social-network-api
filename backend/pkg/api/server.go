@@ -161,7 +161,7 @@ func (S *Server) UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// all forms will send the file in same key
-	file, header, err := r.FormFile("file")
+	file, _, err := r.FormFile("file")
 	if err != nil {
 		tools.SendJSONError(w, "Cannot read file", http.StatusBadRequest)
 		return

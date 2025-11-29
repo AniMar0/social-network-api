@@ -5,11 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
-
-	"github.com/twinj/uuid"
 )
 
 func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
