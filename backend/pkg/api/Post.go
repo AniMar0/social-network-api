@@ -125,17 +125,17 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Post)
 }
 
-func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
+func (S *Server) GetAllPosts(currentUserID int) ([]Post, error) {
 	rows, err := S.db.Query(`
 	SELECT 
-		p.id, p.content, p.image, p.created_at, p.privacy,
-		u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private, u.url,
-		(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
-	FROM posts p
-	JOIN users u ON p.user_id = u.id
-	WHERE p.user_id = ? AND p.group_id IS NULL
-	ORDER BY p.created_at DESC
-`, userID)
+			p.id, p.content, p.image, p.created_at, p.privacy,
+			u.id, u.first_name, u.last_name, u.nickname, u.avatar, u.is_private, u.url,
+			(SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		WHERE p.group_id IS NULL
+		ORDER BY p.id DESC
+`)
 
 	if err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func (S *Server) GetUserPosts(userID int, currentUserID int) ([]Post, error) {
 			IsPrivate: isPrivate,
 			Url:       url.String,
 		}
-		post.UserID = userID
+		post.UserID = authorID
 		posts = append(posts, post)
 	}
 
@@ -196,28 +196,19 @@ func (S *Server) GetUserIdFromPostID(postID int) (int, error) {
 }
 
 func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
-	userID, _, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
 		return
 	}
 	var allPosts []Post
-	ids, err := S.GetAllUsers()
+	posts, err := S.GetAllPosts(userID)
 	if err != nil {
-		fmt.Println("GetPostsHandler GetAllUsers error : ", err)
-		http.Error(w, "DB Error", http.StatusInternalServerError)
+		fmt.Println("GetPostsHandler GetUserPosts error : ", err)
+		tools.SendJSONError(w, "DB Error", http.StatusInternalServerError)
 		return
 	}
-	for _, userID := range ids {
-		posts, err := S.GetUserPosts(userID, userID)
-		if err != nil {
-			fmt.Println(err)
-			http.Error(w, "DB Error", http.StatusInternalServerError)
-			return
-		}
-		allPosts = append(allPosts, posts...)
-
-	}
+	allPosts = append(allPosts, posts...)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"posts": allPosts,
