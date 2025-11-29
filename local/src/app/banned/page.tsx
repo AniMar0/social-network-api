@@ -9,11 +9,14 @@ export default function BannedPage() {
         <div className="mx-auto bg-destructive/10 w-20 h-20 rounded-full flex items-center justify-center">
           <ShieldAlert className="h-10 w-10 text-destructive" />
         </div>
-        
+
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">Account Suspended</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Account Suspended
+          </h1>
           <p className="text-muted-foreground">
-            Your account has been banned due to a violation of our community guidelines.
+            Your account has been banned due to a violation of our community
+            guidelines.
           </p>
         </div>
 

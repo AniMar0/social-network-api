@@ -147,13 +147,10 @@ export const profileUtils = {
   fetchUserProfile: async (url: string) => {
     try {
       // TODO: Replace with actual backend endpoint
-      const res = await fetch(
-        `${siteConfig.domain}/api/profile/${url}`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch(`${siteConfig.domain}/api/profile/${url}`, {
+        method: "GET",
+        credentials: "include",
+      });
 
       if (!res.ok) {
         return null;
