@@ -174,7 +174,11 @@ func (S *Server) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	groupIDStr := r.URL.Path[len("/api/groups/delete/"):]
-	groupID := tools.StringToInt(groupIDStr)
+	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
+	if !checkGroupID {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
 
 	userID, _, err := S.CheckSession(r)
 	if err != nil {
