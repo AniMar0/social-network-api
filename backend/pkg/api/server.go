@@ -62,7 +62,6 @@ func (S *Server) initRoutes() {
 	S.mux.HandleFunc("/api/upload-file", S.AuthMiddleware(http.HandlerFunc(S.UploadFileHandler)))
 	//user handlers
 	S.mux.HandleFunc("/api/register", S.RegisterHandler)
-	S.mux.HandleFunc("/api/upload-avatar", S.UploadAvatarHandler)
 	S.mux.HandleFunc("/api/user/update", S.AuthMiddleware(http.HandlerFunc(S.UpdateUserHandler)))
 
 	//notification handlers
