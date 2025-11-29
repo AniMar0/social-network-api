@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { useNotificationCount } from "@/lib/notifications";
 import { GroupChat } from "./group-chat";
+import { siteConfig } from "@/config/site.config";
 
 // Interfaces
 interface Group {
@@ -155,7 +156,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch("http://localhost:8080/api/groups", {
+      const res = await fetch(`${siteConfig.domain}/api/groups`, {
         credentials: "include",
       });
       if (res.ok) {
@@ -172,7 +173,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
   const fetchGroupPosts = async (groupId: string) => {
     try {
       const res = await fetch(
-        `http://localhost:8080/api/groups/posts/${groupId}`,
+        `${siteConfig.domain}/api/groups/posts/${groupId}`,
         {
           credentials: "include",
         }
@@ -189,7 +190,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
   const fetchGroupEvents = async (groupId: string) => {
     try {
       const res = await fetch(
-        `http://localhost:8080/api/groups/events/${groupId}`,
+        `${siteConfig.domain}/api/groups/events/${groupId}`,
         {
           credentials: "include",
         }
@@ -221,7 +222,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
   const handleCreateGroup = async () => {
     if (newGroupTitle.trim() && newGroupDescription.trim()) {
       try {
-        const res = await fetch("http://localhost:8080/api/groups/create", {
+        const res = await fetch(`${siteConfig.domain}/api/groups/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -247,7 +248,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
 
   const handleJoinGroup = async (groupId: string) => {
     try {
-      const res = await fetch("http://localhost:8080/api/groups/join", {
+      const res = await fetch(`${siteConfig.domain}/api/groups/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ groupId: parseInt(groupId) }),
@@ -270,7 +271,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
     if (newPostContent.trim() && selectedGroup) {
       try {
         const res = await fetch(
-          "http://localhost:8080/api/groups/posts/create",
+          `${siteConfig.domain}/api/groups/posts/create`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -309,7 +310,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
 
       try {
         const res = await fetch(
-          "http://localhost:8080/api/groups/events/create",
+          `${siteConfig.domain}/api/groups/events/create`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -345,7 +346,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
   ) => {
     try {
       const res = await fetch(
-        "http://localhost:8080/api/groups/events/respond",
+        `${siteConfig.domain}/api/groups/events/respond`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1211,7 +1212,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
                           >
                             <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                               <AvatarImage
-                                src={`http://localhost:8080/${member.avatar}` || undefined}
+                                src={`${siteConfig.domain}/${member.avatar}` || undefined}
                                 alt={member.firstName + " " + member.lastName}
                               />
                               <AvatarFallback>

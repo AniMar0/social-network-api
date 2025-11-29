@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { initWebSocket, addMessageListener } from "@/lib/websocket";
+import { siteConfig } from "@/config/site.config";
 
 interface GroupChatMessage {
   id: string;
@@ -54,7 +55,7 @@ export function GroupChat({
   const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(
-        `http://localhost:8080/api/groups/chat/${groupId}`,
+        `${siteConfig.domain}/api/groups/chat/${groupId}`,
         {
           credentials: "include",
         }
@@ -123,7 +124,7 @@ export function GroupChat({
   const handleSendMessage = async () => {
     if (newMessage.trim()) {
       try {
-        const res = await fetch("http://localhost:8080/api/groups/chat/send", {
+        const res = await fetch(`${siteConfig.domain}/api/groups/chat/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

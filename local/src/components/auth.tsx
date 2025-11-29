@@ -273,8 +273,9 @@ export function AuthForm() {
         let avatarUrl = "";
         if (formData.avatar) {
           console.log(formData.avatar);
-          avatarForm.append("avatar", formData.avatar);
-          await fetch(`${siteConfig.domain}/api/upload-avatar`, {
+          avatarForm.append("file", formData.avatar);
+          avatarForm.append("type", "avatar");
+          await fetch(`${siteConfig.domain}/api/upload-file`, {
             method: "POST",
             body: avatarForm,
             credentials: "include",

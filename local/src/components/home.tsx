@@ -131,30 +131,30 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
   }, []);
 
   const handleLike = async (postId: string) => {
-    try {
-      const res = await fetch(`${siteConfig.domain}/api/like/${postId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+    // try {
+    //   const res = await fetch(`${siteConfig.domain}/api/like/${postId}`, {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     credentials: "include",
+    //   });
 
-      const data = await res.json();
-      const isLiked = data.liked ?? false;
+    //   const data = await res.json();
+    //   const isLiked = data.liked ?? false;
 
-      setPostsState((prevPosts) =>
-        prevPosts.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                isLiked,
-                likes: isLiked ? post.likes + 1 : post.likes - 1,
-              }
-            : post
-        )
-      );
-    } catch (err) {
-      console.error("Failed to like post", err);
-    }
+    //   setPostsState((prevPosts) =>
+    //     prevPosts.map((post) =>
+    //       post.id === postId
+    //         ? {
+    //             ...post,
+    //             isLiked,
+    //             likes: isLiked ? post.likes + 1 : post.likes - 1,
+    //           }
+    //         : post
+    //     )
+    //   );
+    // } catch (err) {
+    //   console.error("Failed to like post", err);
+    // }
   };
 
   const handleEmojiSelect = (emoji: string, postId: string) => {
@@ -272,39 +272,39 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
   };
 
   const handleCommentLike = async (commentId: string, postId: string) => {
-    try {
-      const res = await fetch(
-        `${siteConfig.domain}/api/like-comment/${commentId}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        }
-      );
-      if (!res.ok) throw new Error("Failed to like comment");
-      const data = await res.json();
+    // try {
+    //   const res = await fetch(
+    //     `${siteConfig.domain}/api/like-comment/${commentId}`,
+    //     {
+    //       method: "POST",
+    //       headers: { "Content-Type": "application/json" },
+    //       credentials: "include",
+    //     }
+    //   );
+    //   if (!res.ok) throw new Error("Failed to like comment");
+    //   const data = await res.json();
 
-      console.log("Comment liked:", data);
+    //   console.log("Comment liked:", data);
 
-      // Update the comment likes in the post
-      setPostsState((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId && post.commentsList) {
-            return {
-              ...post,
-              commentsList: updateCommentLikes(
-                post.commentsList,
-                commentId,
-                data.liked
-              ),
-            };
-          }
-          return post;
-        })
-      );
-    } catch (err) {
-      console.error("Failed to like comment", err);
-    }
+    //   // Update the comment likes in the post
+    //   setPostsState((prevPosts) =>
+    //     prevPosts.map((post) => {
+    //       if (post.id === postId && post.commentsList) {
+    //         return {
+    //           ...post,
+    //           commentsList: updateCommentLikes(
+    //             post.commentsList,
+    //             commentId,
+    //             data.liked
+    //           ),
+    //         };
+    //       }
+    //       return post;
+    //     })
+    //   );
+    // } catch (err) {
+    //   console.error("Failed to like comment", err);
+    // }
   };
 
   const updateCommentLikes = (

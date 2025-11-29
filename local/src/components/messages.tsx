@@ -59,6 +59,8 @@ interface Chat {
   unreadCount: number;
   isVerified?: boolean;
   isOnline?: boolean;
+  userId?: number;
+  otherUserId?: string;
 }
 
 interface UserProfile {
@@ -353,14 +355,20 @@ export function MessagesPage({
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Use otherUserId (URL) if available, otherwise fallback to userId (ID)
+      // But ProfileHandler expects URL or ID.
+      // If userId passed here is ChatID (selectedChat.id), we need to find the user URL/ID from the chat object.
+      const chat = chats.find((c) => c.id === userId);
+      const targetId = chat?.otherUserId || chat?.userId || userId;
+
       const response = await fetch(
-        `${siteConfig.domain}/api/get-users/profile/${userId}`,
+        `${siteConfig.domain}/api/profile/${targetId}`,
         {
           credentials: "include",
         }
       );
       const profileData = await response.json();
-      setUserProfile(profileData);
+      setUserProfile(profileData.user || profileData); // Handle nested user object if present
     } catch (error) {
       console.error("Error fetching user profile:", error);
     }
@@ -578,7 +586,7 @@ export function MessagesPage({
 
       try {
         const response = await fetch(
-          `${siteConfig.domain}/api/send-message/${onUserProfileClick}`,
+          `${siteConfig.domain}/api/send-message/${selectedChat.id}`,
           {
             method: "POST",
             credentials: "include",
@@ -666,7 +674,7 @@ export function MessagesPage({
 
     try {
       const response = await fetch(
-        `${siteConfig.domain}/api/send-message/${onUserProfileClick}`,
+        `${siteConfig.domain}/api/send-message/${selectedChat?.id}`,
         {
           method: "POST",
           credentials: "include",
@@ -713,9 +721,10 @@ export function MessagesPage({
     const imageUrl = URL.createObjectURL(file);
     const avatarForm = new FormData();
     let avatarUrl = "";
-    avatarForm.append("image", file);
+    avatarForm.append("file", file);
+    avatarForm.append("type", "message");
 
-    await fetch(`${siteConfig.domain}/api/upoad-file`, {
+    await fetch(`${siteConfig.domain}/api/upload-file`, {
       method: "POST",
       body: avatarForm,
       credentials: "include",
@@ -747,7 +756,7 @@ export function MessagesPage({
 
     try {
       const response = await fetch(
-        `${siteConfig.domain}/api/send-message/${onUserProfileClick}`,
+        `${siteConfig.domain}/api/send-message/${selectedChat?.id}`,
         {
           method: "POST",
           credentials: "include",
@@ -784,37 +793,37 @@ export function MessagesPage({
   };
 
   const handleUnsendMessage = async (messageId: string) => {
-    try {
-      const response = await fetch(
-        `${siteConfig.domain}/api/unsend-message/${messageId}`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to unsend message");
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-      const data = await response.json();
-      console.log("Unsent message:", data);
-      setChats((prevChats) =>
-        prevChats.map((c) => {
-          if (c.id == data.chat_id && c.lastMessageId == messageId) {
-            return {
-              ...c,
-              lastMessage: data.content,
-              lastMessageType: data.type,
-              lastMessageId: data.id,
-              timestamp: data.timestamp,
-              sender_id: data.sender_id,
-            };
-          } else {
-            return c;
-          }
-        })
-      );
-    } catch (error) {
-      console.error("Error unsending message:", error);
-    }
+    // try {
+    //   const response = await fetch(
+    //     `${siteConfig.domain}/api/unsend-message/${messageId}`,
+    //     {
+    //       method: "POST",
+    //       credentials: "include",
+    //     }
+    //   );
+    //   if (!response.ok) throw new Error("Failed to unsend message");
+    //   setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+    //   const data = await response.json();
+    //   console.log("Unsent message:", data);
+    //   setChats((prevChats) =>
+    //     prevChats.map((c) => {
+    //       if (c.id == data.chat_id && c.lastMessageId == messageId) {
+    //         return {
+    //           ...c,
+    //           lastMessage: data.content,
+    //           lastMessageType: data.type,
+    //           lastMessageId: data.id,
+    //           timestamp: data.timestamp,
+    //           sender_id: data.sender_id,
+    //         };
+    //       } else {
+    //         return c;
+    //       }
+    //     })
+    //   );
+    // } catch (error) {
+    //   console.error("Error unsending message:", error);
+    // }
   };
 
   const handleReplyToMessage = async (message: Message) => {
@@ -840,10 +849,10 @@ export function MessagesPage({
   };
 
   const setSeenChat = (chatId: string) => {
-    fetch(`${siteConfig.domain}/api/set-seen-chat/${chatId}`, {
-      method: "POST",
-      credentials: "include",
-    }).catch((err) => console.error(err));
+    // fetch(`${siteConfig.domain}/api/set-seen-chat/${chatId}`, {
+    //   method: "POST",
+    //   credentials: "include",
+    // }).catch((err) => console.error(err));
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

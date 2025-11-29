@@ -175,9 +175,10 @@ export function NewPostModal({ isOpen, onClose, onPost }: NewPostModalProps) {
 
     if (postFile) {
       const avatarForm = new FormData();
-      avatarForm.append("post", postFile);
+      avatarForm.append("file", postFile);
+      avatarForm.append("type", "post");
       try {
-        const res = await fetch(`${siteConfig.domain}/api/upload-post-file`, {
+        const res = await fetch(`${siteConfig.domain}/api/upload-file`, {
           method: "POST",
           body: avatarForm,
           credentials: "include",
