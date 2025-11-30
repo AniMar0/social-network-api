@@ -29,11 +29,6 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if targetedUserID == currentUser {
-		http.Redirect(w, r, "/api/me", http.StatusSeeOther)
-		return
-	}
-
 	user, err := S.GetUserData("", targetedUserID)
 	if err != nil {
 		tools.SendJSONError(w, "user not found", http.StatusNotFound)
@@ -47,7 +42,7 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isFollowing, err := S.IsFollowing(currentUser, user.Url,targetedUserID)
+	isFollowing, err := S.IsFollowing(currentUser, user.Url, targetedUserID)
 	if err != nil {
 		fmt.Println("Failed to check following status:", err)
 		tools.SendJSONError(w, "Internal Server Error", http.StatusInternalServerError)
