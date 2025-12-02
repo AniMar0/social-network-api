@@ -110,20 +110,14 @@ func (S *Server) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (S *Server) ActionMiddleware(r *http.Request, Method string, logged bool, banned bool) (bool, int) {
+func (S *Server) ActionMiddleware(r *http.Request, Method string, needToLogged bool, banned bool) (bool, int) {
 	NeedToBaned := false
 	if r.Method != Method {
 		NeedToBaned = true
 	}
 	UserId, _, err := S.CheckSession(r)
-	if err == nil && !logged {
+	if err == nil && needToLogged {
 		NeedToBaned = true
-	}
-
-	if NeedToBaned || banned {
-		S.db.Exec("UPDATE users SET is_blocked = 1 WHERE id = ?",
-			UserId,
-		)
 	}
 
 	return NeedToBaned, UserId
