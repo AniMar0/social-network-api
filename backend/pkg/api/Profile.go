@@ -14,7 +14,7 @@ import (
 func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUser := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	url := strings.TrimPrefix(r.URL.Path, "/api/profile/")
@@ -91,7 +91,7 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	banned, userID := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -110,7 +110,7 @@ func (S *Server) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := S.RemoveOldAvatar(id, user.Avatar)
 	if err != nil {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

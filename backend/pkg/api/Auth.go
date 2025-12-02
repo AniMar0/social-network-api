@@ -14,7 +14,7 @@ import (
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

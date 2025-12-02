@@ -12,7 +12,7 @@ import (
 func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	var body struct {
@@ -39,7 +39,7 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 
 	if followerID == followingID || UserID != followerID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (S *Server) CancelFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 
 	if followerID != FollowerID || followingID != FollowingID || UserID != FollowingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -184,7 +184,7 @@ func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Requ
 
 	if followerID != FollowerID || followingID != FollowingID || UserID != FollowingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -207,7 +207,7 @@ func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Requ
 func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -234,7 +234,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 
 	if req.Follower == req.Following || UserID != followerID || S.ContainsHTML([]byte(req.Follower)) || S.ContainsHTML([]byte(req.Following)) {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -286,7 +286,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserId := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -309,7 +309,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 
 	if UserId != followerID || followerID == followingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -343,7 +343,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 	banned, UserId := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -366,7 +366,7 @@ func (S *Server) UnfollowHandler(w http.ResponseWriter, r *http.Request) {
 
 	if UserId != followerID || followerID == followingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -479,7 +479,7 @@ func (S *Server) IsFollower(followerID int, followingURL string, followingID int
 func (S *Server) GetFollowersHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUser := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

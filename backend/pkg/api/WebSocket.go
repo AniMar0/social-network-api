@@ -20,7 +20,7 @@ type Client struct {
 func (S *Server) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
