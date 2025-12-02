@@ -87,15 +87,15 @@ func (S *Server) CheckSession(r *http.Request) (int, string, error) {
 	if err != nil {
 		return 0, "", fmt.Errorf("invalid or expired session")
 	}
-	var banned bool
-	err = S.db.QueryRow(`SELECT is_blocked FROM users WHERE id = ?`, userID).Scan(&banned)
-	if err != nil {
-		return 0, "", fmt.Errorf("failed to check user status")
-	}
-	if banned {
-		S.db.Exec("DELETE FROM sessions WHERE session_id = ?", sessionID)
-		return 0, "", fmt.Errorf("user is banned")
-	}
+	// var banned bool
+	// err = S.db.QueryRow(`SELECT is_blocked FROM users WHERE id = ?`, userID).Scan(&banned)
+	// if err != nil {
+	// 	return 0, "", fmt.Errorf("failed to check user status")
+	// }
+	// if banned {
+	// 	S.db.Exec("DELETE FROM sessions WHERE session_id = ?", sessionID)
+	// 	return 0, "", fmt.Errorf("user is banned")
+	// }
 	return userID, sessionID, nil
 }
 
@@ -116,7 +116,7 @@ func (S *Server) ActionMiddleware(r *http.Request, Method string, needToLogged b
 		NeedToBaned = true
 	}
 	UserId, _, err := S.CheckSession(r)
-	if err == nil && needToLogged {
+	if err != nil && needToLogged {
 		NeedToBaned = true
 	}
 
