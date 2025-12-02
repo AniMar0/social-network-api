@@ -74,29 +74,29 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var user LoginUser
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
+		fmt.Println("decode request body error (LoginHandler):", err)
 		tools.SendJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if user.Identifier == "" || user.Password == "" {
+		fmt.Println("Email and password are required")
 		tools.SendJSONError(w, "Email and password are required", http.StatusBadRequest)
 		return
 	}
-	url, hashedPassword, id, isBlocked, err := S.GetHashedPasswordFromDB(tools.ToLower(user.Identifier))
+	url, hashedPassword, id, err := S.GetHashedPasswordFromDB(tools.ToLower(user.Identifier))
 	if err != nil {
+		fmt.Println("Error getting hashed password from DB:", err)
 		tools.SendJSONError(w, "Invalid email or password", http.StatusUnauthorized)
-		return
-	}
-
-	if isBlocked {
-		tools.SendJSONError(w, "User is banned", http.StatusForbidden)
 		return
 	}
 
 	if err := tools.CheckPassword(hashedPassword, user.Password); err != nil {
+		fmt.Println("Password mismatch:", err)
 		tools.SendJSONError(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
+
 	err = S.MakeToken(w, id)
 	if err != nil {
 		fmt.Println("Error creating session token:", err)
@@ -196,23 +196,22 @@ func (S *Server) AddUser(user User) error {
 	return nil
 }
 
-func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, int, bool, error) {
+func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, int, error) {
 	var hashedPassword, url string
 	var id int
-	var isBlocked bool
 
 	err := S.db.QueryRow(`
-		SELECT password, id, url, is_blocked FROM users 
+		SELECT password, id, url FROM users 
 		WHERE nickname = ? OR email = ?
-	`, identifier, identifier).Scan(&hashedPassword, &id, &url, &isBlocked)
+	`, identifier, identifier).Scan(&hashedPassword, &id, &url)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", "", 0, false, fmt.Errorf("this user does not exist")
+			return "", "", 0, fmt.Errorf("this user does not exist")
 		}
-		return "", "", 0, false, err
+		return "", "", 0, err
 	}
-	return url, hashedPassword, id, isBlocked, nil
+	return url, hashedPassword, id, nil
 }
 
 func (S *Server) GetUserData(url string, id int) (UserData, error) {
