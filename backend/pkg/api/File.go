@@ -117,7 +117,7 @@ func (S *Server) UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) ProtectedFileHandler(w http.ResponseWriter, r *http.Request) {
 	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

@@ -13,7 +13,7 @@ import (
 func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
@@ -31,7 +31,7 @@ func (S *Server) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) MakeChatHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (S *Server) FoundChat(currentUserID, otherUserID int) bool {
 func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (S *Server) SendMessage(message Message) error {
 func (S *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 

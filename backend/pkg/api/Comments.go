@@ -13,7 +13,7 @@ import (
 func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodPost, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
@@ -40,10 +40,10 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized to comment on this post", http.StatusUnauthorized)
 		return
 	}
-	
+
 	if commnet.Type != "text" && tools.ContainsHTML(commnet.Content) {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	} else if commnet.Type == "text" && tools.ContainsHTML(commnet.Content) {
 		commnet.Content = html.EscapeString(commnet.Content)
@@ -67,7 +67,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 	ID := strings.TrimPrefix(r.URL.Path, "/api/get-comments/")

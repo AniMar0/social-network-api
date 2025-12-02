@@ -11,7 +11,7 @@ import (
 func (S *Server) GetNotificationsHandler(w http.ResponseWriter, r *http.Request) {
 	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (S *Server) InsertNotification(notif Notification) error {
 func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
 	banned, _ := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 	ID := r.URL.Path[len("/api/mark-notification-as-read/"):]
@@ -87,7 +87,7 @@ func (S *Server) MarkNotificationAsReadHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		if err != sql.ErrNoRows {
 			S.ActionMiddleware(r, http.MethodPut, true, true)
-			tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+			tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 			return
 		}
 		fmt.Println("DB error:", err)
@@ -119,14 +119,14 @@ func (S *Server) DeleteNotificationHandler(w http.ResponseWriter, r *http.Reques
 
 	if banned || (receiverID != UserId && senderID == UserId) {
 		S.ActionMiddleware(r, http.MethodDelete, true, true)
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			S.ActionMiddleware(r, http.MethodDelete, true, true)
-			tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+			tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 			return
 		}
 		fmt.Println("DB error:", err)
@@ -172,7 +172,7 @@ func (S *Server) GetSenderAndReceiverIDs(notificationID int) (int, int, error) {
 func (S *Server) MarkAllNotificationAsReadHandler(w http.ResponseWriter, r *http.Request) {
 	banned, currentUserID := S.ActionMiddleware(r, http.MethodPut, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 

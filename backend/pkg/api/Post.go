@@ -14,7 +14,7 @@ import (
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	banned, userID := S.ActionMiddleware(r, http.MethodPost, false, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 
@@ -178,7 +178,7 @@ func (S *Server) GetUserIdFromPostID(postID int) (int, error) {
 func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	banned, userID := S.ActionMiddleware(r, http.MethodGet, true, false)
 	if banned {
-		tools.SendJSONError(w, "You are banned from performing this action", http.StatusForbidden)
+		tools.SendJSONError(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
 	var allPosts []Post
