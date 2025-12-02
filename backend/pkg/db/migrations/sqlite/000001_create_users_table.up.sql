@@ -12,6 +12,5 @@ CREATE TABLE IF NOT EXISTS users (
     about_me TEXT,
     url TEXT UNIQUE,
     is_private BOOLEAN DEFAULT 0,
-    is_blocked BOOLEAN DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
