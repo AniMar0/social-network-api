@@ -450,7 +450,7 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
                       <Avatar className="h-12 w-12 ring-2 ring-primary/20 transition-transform hover:scale-105 cursor-pointer">
                         <AvatarImage
                           src={
-                            `${siteConfig.domain}/${post.author.avatar}` ||
+                            `${siteConfig.domain}${post.author.avatar}` ||
                             `${siteConfig.domain}/uploads/default.jpg`
                           }
                           alt={post.author.name}
@@ -501,7 +501,7 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
                         src={
                           post.image.startsWith("http")
                             ? post.image // external URL
-                            : `${siteConfig.domain}/${post.image}` // internal URL
+                            : `${siteConfig.domain}${post.image}` // internal URL
                         }
                         alt="Post content"
                         className="w-full h-auto max-h-[600px] object-contain"
