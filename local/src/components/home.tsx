@@ -131,28 +131,17 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
   }, []);
 
   const handleLike = async (postId: string) => {
-    // try {
-    //   const res = await fetch(`${siteConfig.domain}/api/like/${postId}`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     credentials: "include",
-    //   });
-    //   const data = await res.json();
-    //   const isLiked = data.liked ?? false;
-    //   setPostsState((prevPosts) =>
-    //     prevPosts.map((post) =>
-    //       post.id === postId
-    //         ? {
-    //             ...post,
-    //             isLiked,
-    //             likes: isLiked ? post.likes + 1 : post.likes - 1,
-    //           }
-    //         : post
-    //     )
-    //   );
-    // } catch (err) {
-    //   console.error("Failed to like post", err);
-    // }
+    setPostsState((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              isLiked: !post.isLiked,
+              likes: !post.isLiked ? post.likes + 1 : Math.max(0, post.likes - 1),
+            }
+          : post
+      )
+    );
   };
 
   const handleEmojiSelect = (emoji: string, postId: string) => {
@@ -281,37 +270,27 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
   };
 
   const handleCommentLike = async (commentId: string, postId: string) => {
-    // try {
-    //   const res = await fetch(
-    //     `${siteConfig.domain}/api/like-comment/${commentId}`,
-    //     {
-    //       method: "POST",
-    //       headers: { "Content-Type": "application/json" },
-    //       credentials: "include",
-    //     }
-    //   );
-    //   if (!res.ok) throw new Error("Failed to like comment");
-    //   const data = await res.json();
-    //   console.log("Comment liked:", data);
-    //   // Update the comment likes in the post
-    //   setPostsState((prevPosts) =>
-    //     prevPosts.map((post) => {
-    //       if (post.id === postId && post.commentsList) {
-    //         return {
-    //           ...post,
-    //           commentsList: updateCommentLikes(
-    //             post.commentsList,
-    //             commentId,
-    //             data.liked
-    //           ),
-    //         };
-    //       }
-    //       return post;
-    //     })
-    //   );
-    // } catch (err) {
-    //   console.error("Failed to like comment", err);
-    // }
+    setPostsState((prevPosts) =>
+      prevPosts.map((post) => {
+        if (post.id !== postId || !post.commentsList) return post;
+        const toggleInList = (list: Comment[]): Comment[] =>
+          list.map((c) => {
+            if (c.id === commentId) {
+              const newIsLiked = !c.isLiked;
+              return {
+                ...c,
+                isLiked: newIsLiked,
+                likes: newIsLiked ? (c.likes || 0) + 1 : Math.max(0, (c.likes || 0) - 1),
+              } as Comment;
+            }
+            if (c.replies && c.replies.length) {
+              return { ...c, replies: toggleInList(c.replies) } as Comment;
+            }
+            return c;
+          });
+        return { ...post, commentsList: toggleInList(post.commentsList) };
+      })
+    );
   };
 
   const updateCommentLikes = (
