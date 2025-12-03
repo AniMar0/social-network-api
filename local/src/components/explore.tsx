@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SidebarNavigation } from "./sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, UserPlus, UserCheck, Compass } from "lucide-react";
 import { useNotificationCount } from "@/lib/notifications";
+import { siteConfig } from "@/config/site.config";
+import { authUtils } from "@/lib/navigation";
 
 interface User {
   id: string;
@@ -17,6 +19,8 @@ interface User {
   followers: number;
   following: number;
   isFollowing: boolean;
+  url?: string;
+  isPrivate?: boolean;
 }
 
 interface ExplorePageProps {
@@ -24,57 +28,77 @@ interface ExplorePageProps {
   onNewPost?: () => void;
 }
 
-const sampleUsers: User[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    username: "@johndoe",
-    avatar: "https://i.imgur.com/aSlIJks.png",
-    bio: "Software engineer passionate about building great products",
-    followers: 1234,
-    following: 567,
-    isFollowing: false,
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    username: "@janesmith",
-    avatar: "https://i.imgur.com/aSlIJks.png",
-    bio: "Designer & creator. Love to make things beautiful ✨",
-    followers: 890,
-    following: 234,
-    isFollowing: true,
-  },
-  {
-    id: "3",
-    name: "Alex Johnson",
-    username: "@alexj",
-    avatar: "https://i.imgur.com/aSlIJks.png",
-    bio: "Basketball player 🏀 | Coffee enthusiast ☕",
-    followers: 2345,
-    following: 123,
-    isFollowing: false,
-  },
-  {
-    id: "4",
-    name: "Sarah Wilson",
-    username: "@sarahw",
-    avatar: "https://i.imgur.com/aSlIJks.png",
-    bio: "Travel blogger exploring the world 🌎",
-    followers: 567,
-    following: 789,
-    isFollowing: false,
-  },
-];
+const sampleUsers: User[] = [];
 
 export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<User[]>(sampleUsers);
   const [isSearching, setIsSearching] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Get notification count for sidebar
   const notificationCount = useNotificationCount();
+
+  useEffect(() => {
+    const loadUsersFromPosts = async () => {
+      try {
+        const res = await fetch(`${siteConfig.domain}/api/get-posts`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch posts");
+        const data = await res.json();
+        const posts: any[] = data.posts || [];
+        const uniqueByUrl = new Map<string, any>();
+        posts.forEach((p) => {
+          if (p.author?.url && !uniqueByUrl.has(p.author.url)) {
+            uniqueByUrl.set(p.author.url, p.author);
+          }
+        });
+
+        const authors = Array.from(uniqueByUrl.entries());
+        const profiles = await Promise.all(
+          authors.map(async ([url]) => {
+            try {
+              const pres = await fetch(`${siteConfig.domain}/api/profile/${url}`, {
+                credentials: "include",
+              });
+              if (!pres.ok) throw new Error("Failed to fetch profile");
+              const profile = await pres.json();
+              const udata = profile?.user || {};
+              const safeUrl = (udata.url || url || udata.nickname || "").toString();
+              const first = (udata.firstName || "").toString();
+              const last = (udata.lastName || "").toString();
+              const id = (udata.id ? String(udata.id) : safeUrl || (udata.nickname || "").toString() || "");
+              const displayName = [first, last].filter(Boolean).join(" ") || (udata.nickname || safeUrl || id || "User").toString();
+              const handle = (udata.nickname || safeUrl || id || "user").toString();
+              const u: User = {
+                id,
+                name: displayName,
+                username: handle.startsWith("@") ? handle : `@${handle}`,
+                avatar: udata.avatar ? `${siteConfig.domain}/${udata.avatar}` : `${siteConfig.domain}/uploads/default.jpg`,
+                bio: (udata.aboutMe || "").toString(),
+                followers: udata.followersCount ?? profile?.followers ?? 0,
+                following: udata.followingCount ?? profile?.following ?? 0,
+                isFollowing: Boolean(profile?.isfollowing),
+                url: safeUrl,
+                isPrivate: Boolean(udata.isPrivate),
+              };
+              return u;
+            } catch {
+              return null;
+            }
+          })
+        );
+        setUsers(profiles.filter(Boolean) as User[]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUsersFromPosts();
+  }, []);
 
   const filteredUsers = users.filter(
     (user) =>
@@ -89,12 +113,7 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
       setIsSearching(true);
       try {
         console.log("Searching for users:", query);
-        // TODO: Replace with actual API call
-        // const response = await fetch(`${siteConfig.domain}/api/users/search?q=${encodeURIComponent(query)}`);
-        // const searchResults = await response.json();
-        // setUsers(searchResults);
-
-        // For now, using filtered sample data
+        // For now, client-side filter of loaded users
         setTimeout(() => {
           setIsSearching(false);
         }, 500);
@@ -103,8 +122,8 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
         setIsSearching(false);
       }
     } else {
-      // Reset to all users when search is cleared
-      setUsers(sampleUsers);
+      // No server search; keep current loaded users
+      setUsers((prev) => prev);
     }
   };
 
@@ -113,34 +132,63 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
     if (!user) return;
 
     try {
-      console.log(
-        user.isFollowing ? "Unfollowing user:" : "Following user:",
-        userId
-      );
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${siteConfig.domain}/api/users/${userId}/follow`, {
-      //     method: user.isFollowing ? 'DELETE' : 'POST',
-      //     headers: {
-      //         'Content-Type': 'application/json',
-      //     }
-      // });
-      //
-      // if (!response.ok) {
-      //     throw new Error('Failed to update follow status');
-      // }
+      const currentUser = await authUtils.CurrentUser();
+      if (!currentUser) throw new Error("Not logged in");
 
-      // Update local state immediately for instant feedback
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId
-            ? {
-                ...u,
-                isFollowing: !u.isFollowing,
-                followers: u.isFollowing ? u.followers - 1 : u.followers + 1,
-              }
-            : u
-        )
-      );
+      // Determine action based on current state and privacy
+      const body = JSON.stringify({ follower: currentUser.id, following: userId });
+      let endpoint = "";
+      let optimistic: null | { isFollowing: boolean; followers: number } = null;
+      const isNumericId = /^\d+$/.test(String(userId));
+      if (!isNumericId) {
+        // We don't have a numeric ID from this list. Navigate to profile to follow from there.
+        handleUserClick(user);
+        return;
+      }
+      if (user.isFollowing) {
+        endpoint = `${siteConfig.domain}/api/unfollow`;
+        optimistic = { isFollowing: false, followers: Math.max(0, user.followers - 1) };
+      } else if (user.isPrivate) {
+        // Private profile: send follow request, do not flip following in UI
+        endpoint = `${siteConfig.domain}/api/send-follow-request`;
+        optimistic = null;
+      } else {
+        endpoint = `${siteConfig.domain}/api/follow`;
+        optimistic = { isFollowing: true, followers: user.followers + 1 };
+      }
+
+      if (optimistic) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, ...optimistic } : u
+          )
+        );
+      }
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body,
+      });
+      if (!res.ok) {
+        // revert optimistic update
+        if (optimistic) {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId
+                ? {
+                    ...u,
+                    isFollowing: user.isFollowing,
+                    followers: user.followers,
+                  }
+                : u
+            )
+          );
+        }
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to update follow status");
+      }
     } catch (error) {
       console.error("Error updating follow status:", error);
     }
@@ -149,7 +197,8 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
   const handleUserClick = (user: User) => {
     console.log("Navigating to user profile:", user.username);
     // TODO: Navigate to user profile
-    onNavigate?.(`/profile/${user.username}`);
+    const target = user.url || user.username.replace(/^@/, "");
+    onNavigate?.(`/profile/${target}`);
   };
 
   const handleNewPost = () => {
@@ -201,7 +250,13 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
 
           {/* Users List */}
           <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {searchQuery && filteredUsers.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-16 glass-card rounded-2xl border-dashed border-2 border-border/50">
+                <div className="text-6xl mb-4 opacity-50">⏳</div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Loading users...</h3>
+                <p className="text-muted-foreground">Fetching people from recent posts</p>
+              </div>
+            ) : searchQuery && filteredUsers.length === 0 ? (
               <div className="text-center py-16 glass-card rounded-2xl border-dashed border-2 border-border/50">
                 <div className="text-6xl mb-4 opacity-50">🔍</div>
                 <h3 className="text-xl font-bold text-foreground mb-2">
@@ -214,9 +269,9 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user, idx) => (
                   <div
-                    key={user.id}
+                    key={`${user.url || user.id || user.username || "user"}-${idx}`}
                     className="glass-card rounded-2xl p-6 hover:shadow-lg hover:border-primary/30 transition-all duration-300 cursor-pointer group flex flex-col items-center text-center relative overflow-hidden"
                     onClick={() => handleUserClick(user)}
                   >
