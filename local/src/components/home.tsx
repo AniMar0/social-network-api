@@ -221,10 +221,21 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
           content: commentText,
           parentCommentId: parentCommentId || null,
           postId: postId,
+          type: "text",
         }),
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to post comment");
+      }
+
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Failed to parse server response");
+      }
 
       console.log(" New comment: ", data);
 
