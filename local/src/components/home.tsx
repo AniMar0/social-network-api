@@ -180,7 +180,7 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
       const res = await fetch(
         `${siteConfig.domain}/api/get-comments/${postId}`,
         {
-          method: "POST",
+          method: "GET",
           credentials: "include",
         }
       );
