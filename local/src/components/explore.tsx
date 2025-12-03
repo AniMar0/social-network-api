@@ -9,6 +9,7 @@ import { Search, UserPlus, UserCheck, Compass } from "lucide-react";
 import { useNotificationCount } from "@/lib/notifications";
 import { siteConfig } from "@/config/site.config";
 import { authUtils } from "@/lib/navigation";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: string;
@@ -36,6 +37,7 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Get notification count for sidebar
   const notificationCount = useNotificationCount();
@@ -136,13 +138,27 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
       if (!currentUser) throw new Error("Not logged in");
 
       // Determine action based on current state and privacy
-      const body = JSON.stringify({ follower: currentUser.id, following: userId });
-      let endpoint = "";
-      let optimistic: null | { isFollowing: boolean; followers: number } = null;
+      let targetFollowingId = userId;
       const isNumericId = /^\d+$/.test(String(userId));
       if (!isNumericId) {
-        // We don't have a numeric ID from this list. Navigate to profile to follow from there.
-        handleUserClick(user);
+        const targetUrl = user.url || user.username.replace(/^@/, "");
+        try {
+          const pres = await fetch(`${siteConfig.domain}/api/profile/${targetUrl}`, {
+            credentials: "include",
+          });
+          if (pres.ok) {
+            const pdata = await pres.json();
+            const pid = pdata?.user?.id;
+            if (pid) targetFollowingId = String(pid);
+          }
+        } catch {}
+      }
+      const body = JSON.stringify({ follower: currentUser.id, following: targetFollowingId });
+      let endpoint = "";
+      let optimistic: null | { isFollowing: boolean; followers: number } = null;
+      // If still not numeric after resolution, avoid navigating away; let user open profile explicitly
+      if (!/^\d+$/.test(String(targetFollowingId))) {
+        console.warn("Cannot resolve numeric user ID for follow from Explore; open profile to follow.");
         return;
       }
       if (user.isFollowing) {
@@ -196,9 +212,8 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
 
   const handleUserClick = (user: User) => {
     console.log("Navigating to user profile:", user.username);
-    // TODO: Navigate to user profile
     const target = user.url || user.username.replace(/^@/, "");
-    onNavigate?.(`/profile/${target}`);
+    router.push(`/profile/${target}`);
   };
 
   const handleNewPost = () => {
