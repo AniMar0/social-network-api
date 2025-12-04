@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { SidebarNavigation } from "./sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ interface HomeFeedProps {
 }
 
 function HomeFeed({ onNewPost }: HomeFeedProps) {
+  const router = useRouter();
   // Get notification count for sidebar
   const notificationCount = useNotificationCount();
   const [postsState, setPostsState] = useState<Post[]>([]);
@@ -437,7 +439,16 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
                   {/* Post Header */}
                   <div className="p-5 flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12 ring-2 ring-primary/20 transition-transform hover:scale-105 cursor-pointer">
+                      <Avatar
+                        className="h-12 w-12 ring-2 ring-primary/20 transition-transform hover:scale-105 cursor-pointer"
+                        onClick={() =>
+                          router.push(
+                            `/profile/${
+                              (post as any).author?.url || post.author.username
+                            }`
+                          )
+                        }
+                      >
                         <AvatarImage
                           src={
                             `${siteConfig.domain}${post.author.avatar}` ||
@@ -454,7 +465,16 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-foreground hover:text-primary transition-colors cursor-pointer">
+                          <h3
+                            className="font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+                            onClick={() =>
+                              router.push(
+                                `/profile/${
+                                  (post as any).author?.url || post.author.username
+                                }`
+                              )
+                            }
+                          >
                             {post.author.name}
                           </h3>
                           {/* Optional: Add verified badge here */}
