@@ -123,11 +123,13 @@ function UserProfile({
         console.error("No logged in user");
         return;
       }
-
+      console.log(currentUser)
       const body = {
         follower: currentUser.id,
         following: profileData.id,
       };
+
+      console.log("Follow request body:", body);
 
       if (followingState) {
         // Unfollow user

@@ -73,7 +73,7 @@ func (S *Server) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		user.FollowRequestStatus = "follow-back"
 	}
 
-	user.ID = ""
+	//user.ID = ""
 
 	resp := map[string]interface{}{
 		"posts":       posts,

@@ -161,7 +161,7 @@ func (S *Server) MeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData.ID = ""
+	//userData.ID = ""
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

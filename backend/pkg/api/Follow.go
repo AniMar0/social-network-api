@@ -216,6 +216,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		Following string `json:"following"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Printf("Error decoding request body: %v\n", err)
 		tools.SendJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -223,16 +224,22 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 	checkifnumberFollower, followerID := tools.IsNumeric(req.Follower)
 	checkifnumberFollowing, followingID := tools.IsNumeric(req.Following)
 	if !checkifnumberFollower || !checkifnumberFollowing {
+
+		fmt.Printf("Invalid follower or following ID: follower=%s, following=%s\n", req.Follower, req.Following)
 		tools.SendJSONError(w, "follower and following must be numeric", http.StatusBadRequest)
 		return
 	}
 
 	if followerID == 0 || followingID == 0 {
+
+		fmt.Printf("Invalid follower or following ID: followerID=%d, followingID=%d\n", followerID, followingID)
 		tools.SendJSONError(w, "follower and following cannot be zero", http.StatusBadRequest)
 		return
 	}
 
 	if req.Follower == req.Following || UserID != followerID || S.ContainsHTML([]byte(req.Follower)) || S.ContainsHTML([]byte(req.Following)) {
+		
+		fmt.Printf("Invalid request: follower=%s, following=%s, UserID=%d, followerID=%d\n", req.Follower, req.Following, UserID, followerID)
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -246,10 +253,12 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		WHERE sender_id = ? AND receiver_id = ? AND status = 'pending'
 	`, req.Follower, req.Following).Scan(&exists)
 	if err != nil {
+		fmt.Printf("Error checking duplicate: %v\n", err)
 		tools.SendJSONError(w, "DB error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if exists > 0 {
+		fmt.Printf("Follow request already sent: sender=%s, receiver=%s\n", req.Follower, req.Following)
 		tools.SendJSONError(w, "Follow request already sent", http.StatusConflict)
 		return
 	}
@@ -259,7 +268,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		VALUES (?, ?, 'pending')
 	`, req.Follower, req.Following)
 	if err != nil {
-		fmt.Println("Error inserting follow request:", err)
+		fmt.Printf("Error inserting follow request: %v\n", err)
 		tools.SendJSONError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -273,10 +282,13 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		CreatedAt: time.Now(),
 	}
 	if err := S.InsertNotification(notification); err != nil {
+		
+		fmt.Printf("Error inserting notification: %v\n", err)
 		tools.SendJSONError(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	fmt.Printf("Notification inserted successfully: actor=%d, target=%d\n", followerID, followingID)
 	S.PushNotification("-new", followingID, notification)
 
 	json.NewEncoder(w).Encode(map[string]string{
@@ -290,12 +302,16 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("FollowHandler called with body: %+v\n", r.Body)
+
 	var body struct {
 		Follower  string `json:"follower"`
 		Following string `json:"following"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+
+		fmt.Printf("Error decoding body: %v\n", err)
 		tools.SendJSONError(w, "invalid body", http.StatusBadRequest)
 		return
 	}
@@ -303,20 +319,28 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	checkifnumberFollower, followerID := tools.IsNumeric(body.Follower)
 	checkifnumberFollowing, followingID := tools.IsNumeric(body.Following)
 	if !checkifnumberFollower || !checkifnumberFollowing {
+
+		fmt.Printf("Invalid follower or following ID: follower=%s, following=%s\n", body.Follower, body.Following)
 		tools.SendJSONError(w, "follower and following must be numeric", http.StatusBadRequest)
 		return
 	}
 
 	if UserId != followerID || followerID == followingID {
+
+		fmt.Printf("Unauthorized access: UserId=%d, followerID=%d, followingID=%d\n", UserId, followerID, followingID)
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	if err := S.FollowUser(body.Follower, body.Following); err != nil {
+		
+		fmt.Printf("Error following user: %v\n", err)
 		tools.SendJSONError(w, "failed to follow", http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("User followed successfully: follower=%d, following=%d\n", followerID, followingID)
 
 	notification := Notification{
 		ID:        followingID,
@@ -328,11 +352,12 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := S.InsertNotification(notification); err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error inserting notification: %v\n", err)
 		tools.SendJSONError(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	fmt.Printf("Notification pushed successfully: actor=%d, target=%d\n", followerID, followingID)
 	S.PushNotification("-new", followingID, notification)
 
 	w.WriteHeader(http.StatusOK)
