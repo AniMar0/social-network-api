@@ -140,7 +140,7 @@ function NotificationsPage({ onNewPost }: NotificationsPageProps) {
 
   const handleFollowRequest = async (
     notificationId: number,
-    action: "accept" | "decline"
+    action: "accept" | "decline"  
   ) => {
     console.log(`Follow request ${action}ed for notification:`, notificationId);
     // TODO: Add backend logic here to handle follow requests

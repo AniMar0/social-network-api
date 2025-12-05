@@ -170,7 +170,7 @@ function UserProfile({
             credentials: "include",
             body: JSON.stringify(body),
           });
-
+          
           setFollowRequestStatus("pending");
           setMessageDialogOpen(false);
         } else {

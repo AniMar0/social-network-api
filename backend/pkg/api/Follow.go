@@ -66,22 +66,15 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	var body struct {
-		FollowerID  string `json:"follower"`
-		FollowingID string `json:"following"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		tools.SendJSONError(w, "invalid body", http.StatusBadRequest)
-		return
-	}
+	
+	
 
 	id := r.URL.Path[len("/api/accept-follow-request/"):]
 
+	
+
 	CheckNotification, notificationID := tools.IsNumeric(id)
-	checkifnumberFollower, followerID := tools.IsNumeric(body.FollowerID)
-	checkifnumberFollowing, followingID := tools.IsNumeric(body.FollowingID)
-	if !CheckNotification || !checkifnumberFollower || !checkifnumberFollowing {
+	if !CheckNotification {
 		tools.SendJSONError(w, "invalid notification ID", http.StatusBadRequest)
 		return
 	}
@@ -93,7 +86,7 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if followerID != FollowerID || followingID != FollowingID || UserID != FollowingID {
+	if UserID != FollowingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
