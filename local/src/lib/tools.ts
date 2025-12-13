@@ -26,7 +26,7 @@ export function timeAgo(timestamp: string, naveBar?: boolean) {
       } else if (diffMins > 0) {
         return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
       } else {
-        return "seen just now";
+        return "just now";
       }
   }
 }

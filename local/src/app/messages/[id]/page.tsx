@@ -56,25 +56,6 @@ export default function Messages() {
     checkAuth();
   }, [router]);
 
-  useEffect(() => {
-    if (userLoggedIn && resiverID && resiverID !== "chats") {
-      const setSeenChat = (chatId: string) => {
-        fetch(`${siteConfig.domain}/api/set-seen-chat/${chatId}`, {
-          method: "POST",
-          credentials: "include",
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error("Failed to set seen chat");
-          })
-          .then(() => {
-            console.log("Chat seen");
-          })
-          .catch((err) => console.error(err));
-      };
-      setSeenChat(resiverID);
-    }
-  }, [userLoggedIn, resiverID]);
-
   const handleNewPost = () => {
     setIsNewPostModalOpen(true);
   };
