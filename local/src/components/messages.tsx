@@ -34,16 +34,9 @@ interface Message {
   id: string;
   content: string;
   timestamp: string;
-  seen?: string;
   isOwn: boolean;
   isRead: boolean;
   type: "text" | "emoji" | "gif" | "image";
-  replyTo?: {
-    id: string;
-    content: string;
-    type: "text" | "emoji" | "gif" | "image";
-    isOwn: boolean;
-  };
 }
 
 interface Chat {
@@ -110,7 +103,6 @@ export function MessagesPage({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const [previousMessageCount, setPreviousMessageCount] = useState(0);
@@ -174,17 +166,6 @@ export function MessagesPage({
 
       case "chat":
         if (onUserProfileClick && onUserProfileClick == data.payload.chat_id) {
-          const ws = wsRef.current;
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(
-              JSON.stringify({
-                channel: "chat-seen",
-                chat_id: onUserProfileClick,
-                to: data.payload.sender_id,
-              })
-            );
-          }
-
           setMessages((prev) =>
             //skipe the prev withe the same id
             prev ? [...prev, data.payload] : [data.payload]
@@ -226,24 +207,6 @@ export function MessagesPage({
               }
             })
           );
-        }
-        break;
-
-      case "chat-seen":
-        if (onUserProfileClick && onUserProfileClick == data.payload.chat_id) {
-          setMessages((prev) => {
-            if (!prev || prev.length === 0) return [];
-            const lastIndex = prev.length - 1;
-            const lastMessage = prev[lastIndex];
-            if (lastMessage.isRead) return prev;
-            const updated = [...prev];
-            updated[lastIndex] = {
-              ...lastMessage,
-              isRead: true,
-              timestamp: data.payload.message.timestamp,
-            };
-            return updated;
-          });
         }
         break;
 
@@ -315,25 +278,6 @@ export function MessagesPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChat]);
 
-  // reduce frequency of seen display updates (was 100ms -> now 1000ms)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMessages((prev) => {
-        if (!prev || prev.length === 0) return [];
-        const lastIndex = prev.length - 1;
-        const lastMessage = prev[lastIndex];
-        if (!lastMessage.isRead) return prev;
-        const updated = [...prev];
-        updated[lastIndex] = {
-          ...lastMessage,
-          seen: timeAgo(lastMessage.timestamp),
-        };
-        return updated;
-      });
-    }, 1000); // changed to 1s to reduce CPU overhead
-
-    return () => clearInterval(interval);
-  }, [messages]);
 
   const fetchMessages = async (userId: string) => {
     try {
@@ -572,14 +516,6 @@ export function MessagesPage({
         isOwn: true,
         isRead: false,
         type: isOnlyEmojis ? "emoji" : "text",
-        replyTo: replyingTo
-          ? {
-              id: replyingTo.id,
-              content: replyingTo.content,
-              type: replyingTo.type,
-              isOwn: replyingTo.isOwn,
-            }
-          : undefined,
       };
 
       setMessages((prev) => (prev ? [...prev, message] : [message]));
@@ -595,9 +531,6 @@ export function MessagesPage({
           }
         );
         if (!response.ok) throw new Error("Failed to send message");
-        if (replyingTo) {
-          // keep behavior
-        }
         const data = await response.json();
         setChats((prevChats) =>
           prevChats.map((c) => {
@@ -622,7 +555,6 @@ export function MessagesPage({
       }
 
       setNewMessage("");
-      setReplyingTo(null);
 
       // stop typing immediately after send
       const ws = wsRef.current;
@@ -826,35 +758,6 @@ export function MessagesPage({
     // }
   };
 
-  const handleReplyToMessage = async (message: Message) => {
-    setReplyingTo(message);
-  };
-
-  const cancelReply = () => {
-    setReplyingTo(null);
-  };
-
-  const renderReplyContent = (replyTo: Message["replyTo"]) => {
-    if (!replyTo) return null;
-    switch (replyTo.type) {
-      case "emoji":
-        return replyTo.content;
-      case "image":
-        return "📷 Image";
-      case "gif":
-        return "🎞️ GIF";
-      default:
-        return replyTo.content;
-    }
-  };
-
-  const setSeenChat = (chatId: string) => {
-    // fetch(`${siteConfig.domain}/api/set-seen-chat/${chatId}`, {
-    //   method: "POST",
-    //   credentials: "include",
-    // }).catch((err) => console.error(err));
-  };
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function formatChatMeta(chat: any) {
     const hideTime =
@@ -943,7 +846,6 @@ export function MessagesPage({
                     router.replace(`/messages/${chat.id}`);
                   }
                   setSelectedChat(chat);
-                  setSeenChat(chat.id);
                 }}
                 className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                   selectedChat?.id === chat.id
@@ -1146,30 +1048,8 @@ export function MessagesPage({
                                                     ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
                                                     : "bg-card border border-border/50 text-foreground rounded-2xl rounded-tl-sm"
                                                 }
-                                                ${
-                                                  message.replyTo
-                                                    ? "rounded-tl-none rounded-tr-none"
-                                                    : ""
-                                                }
                                                 `}
                                   >
-                                    {/* Reply Context */}
-                                    {message.replyTo && (
-                                      <div
-                                        className={`mb-2 px-3 py-2 rounded-lg text-xs bg-black/10 dark:bg-black/20 border-l-2 border-white/30 backdrop-blur-sm`}
-                                      >
-                                        <div className="font-bold opacity-90 mb-0.5">
-                                          {message.isOwn
-                                            ? "You"
-                                            : selectedChat.name}{" "}
-                                          replied:
-                                        </div>
-                                        <div className="opacity-80 truncate max-w-[200px]">
-                                          {renderReplyContent(message.replyTo)}
-                                        </div>
-                                      </div>
-                                    )}
-
                                     {/* Content */}
                                     {message.type === "emoji" ? (
                                       <div className="text-5xl sm:text-6xl leading-none hover:scale-110 transition-transform cursor-pointer">
@@ -1207,7 +1087,7 @@ export function MessagesPage({
                                   </div>
                                 </ContextMenuTrigger>
                                 <ContextMenuContent className="glass-panel border-border/50">
-                                  {message.isOwn ? (
+                                  {message.isOwn && (
                                     <ContextMenuItem
                                       onClick={() =>
                                         handleUnsendMessage(message.id)
@@ -1215,15 +1095,6 @@ export function MessagesPage({
                                       className="text-red-500 focus:text-red-500 focus:bg-red-500/10 cursor-pointer"
                                     >
                                       Unsend Message
-                                    </ContextMenuItem>
-                                  ) : (
-                                    <ContextMenuItem
-                                      onClick={() =>
-                                        handleReplyToMessage(message)
-                                      }
-                                      className="cursor-pointer"
-                                    >
-                                      Reply
                                     </ContextMenuItem>
                                   )}
                                 </ContextMenuContent>
@@ -1237,9 +1108,6 @@ export function MessagesPage({
                                     : "justify-start"
                                 } px-1`}
                               >
-                                {message.isOwn && message.isRead && (
-                                  <span className="text-primary">Read</span>
-                                )}
                                 <span>{timeAgo(message.timestamp)}</span>
                               </div>
                             </div>
@@ -1258,33 +1126,6 @@ export function MessagesPage({
               {isTyping && (
                 <div className="absolute -top-10 left-6 bg-card/80 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border/50 shadow-sm animate-in slide-in-from-bottom-2 fade-in">
                   {selectedChat.name} is typing...
-                </div>
-              )}
-
-              {/* Reply Preview */}
-              {replyingTo && (
-                <div className="mb-3 flex items-center justify-between bg-primary/10 border border-primary/20 p-3 rounded-xl backdrop-blur-sm animate-in slide-in-from-bottom-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-primary mb-0.5">
-                      Replying to{" "}
-                      {replyingTo.isOwn ? "yourself" : selectedChat?.name}
-                    </p>
-                    <p className="text-sm text-foreground/80 truncate">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {renderReplyContent({
-                        ...replyingTo,
-                        isOwn: replyingTo.isOwn,
-                      } as any)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={cancelReply}
-                    className="h-8 w-8 rounded-full hover:bg-primary/20 text-primary"
-                  >
-                    <span className="text-lg">×</span>
-                  </Button>
                 </div>
               )}
 
@@ -1331,9 +1172,7 @@ export function MessagesPage({
 
                 <div className="flex-1 relative bg-muted/40 rounded-2xl border border-border/50 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
                   <Input
-                    placeholder={
-                      replyingTo ? "Type your reply..." : "Type a message..."
-                    }
+                    placeholder="Type a message..."
                     value={newMessage}
                     onChange={(e) => handleInputChange(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
