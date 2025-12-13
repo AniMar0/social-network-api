@@ -140,19 +140,34 @@ function NotificationsPage({ onNewPost }: NotificationsPageProps) {
 
   const handleFollowRequest = async (
     notificationId: number,
-    action: "accept" | "decline"  
+    action: "accept" | "decline"
   ) => {
     console.log(`Follow request ${action}ed for notification:`, notificationId);
-    // TODO: Add backend logic here to handle follow requests
-    await fetch(
-      `${siteConfig.domain}/api/${action}-follow-request/${notificationId}`,
-      {
-        method: "POST",
-        credentials: "include",
-      }
-    );
+    
+    try {
+      const res = await fetch(
+        `${siteConfig.domain}/api/${action}-follow-request/${notificationId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
 
-    handleDelete(notificationId);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || `Failed to ${action} request`);
+      }
+
+      // Remove the notification from the list
+      handleDelete(notificationId);
+      
+      // If accepted, we might want to refresh to update follower counts etc, 
+      // but purely for notifications, removing it is correct.
+      
+    } catch (err) {
+      console.error(`Error processing follow request (${action}):`, err);
+      // Optionally show a toast here
+    }
   };
 
   const handleMarkAllAsRead = async () => {

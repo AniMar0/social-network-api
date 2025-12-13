@@ -548,6 +548,11 @@ func (S *Server) CreateGroupPostHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if post.Image != nil {
+		trimmed := strings.TrimPrefix(*post.Image, "/")
+		post.Image = &trimmed
+	}
+
 	// Insert into database
 	res, err := S.db.Exec(`
         INSERT INTO posts (user_id, content, image, privacy, group_id)

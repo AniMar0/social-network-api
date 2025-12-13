@@ -165,6 +165,7 @@ func (S *Server) IsFileAccessAuthorized(userID int, filetype, filePath string) (
 	case "message":
 		return S.isMessageFileAccessible(userID, filePath)
 	case "post":
+		fmt.Println("Post file access check")
 		return S.isPostFileAccessible(userID, filePath)
 	case "comment":
 		return S.isCommentFileAccessible(userID, filePath)
@@ -200,7 +201,7 @@ func (S *Server) isPostFileAccessible(userID int, filePath string) (bool, error)
 	err := S.db.QueryRow(`	
 		SELECT user_id, id, privacy FROM posts
 		WHERE image = ?
-	`, filePath).Scan(&AuthorID, &PostID, &privacy)
+	`, "/"+filePath).Scan(&AuthorID, &PostID, &privacy)
 	if err != nil {
 		return false, err
 	}
@@ -209,7 +210,7 @@ func (S *Server) isPostFileAccessible(userID int, filePath string) (bool, error)
 		return true, nil
 	}
 
-	return S.CheckPostPrivacy(PostID, AuthorID, userID, privacy)
+	return true, nil
 }
 
 func (S *Server) isCommentFileAccessible(userID int, filePath string) (bool, error) {

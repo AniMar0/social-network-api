@@ -66,12 +66,8 @@ func (S *Server) AcceptFollowRequestHandler(w http.ResponseWriter, r *http.Reque
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	
-	
 
 	id := r.URL.Path[len("/api/accept-follow-request/"):]
-
-	
 
 	CheckNotification, notificationID := tools.IsNumeric(id)
 	if !CheckNotification {
@@ -151,31 +147,21 @@ func (S *Server) DeclineFollowRequestHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var body struct {
-		FollowerID  string `json:"follower"`
-		FollowingID string `json:"following"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		tools.SendJSONError(w, "invalid body", http.StatusBadRequest)
-		return
-	}
-
 	id := r.URL.Path[len("/api/decline-follow-request/"):]
 
 	CheckNotification, notificationID := tools.IsNumeric(id)
-	checkifnumberFollower, followerID := tools.IsNumeric(body.FollowerID)
-	checkifnumberFollowing, followingID := tools.IsNumeric(body.FollowingID)
-	if !CheckNotification || !checkifnumberFollower || !checkifnumberFollowing {
+	if !CheckNotification {
 		tools.SendJSONError(w, "invalid notification ID", http.StatusBadRequest)
 		return
 	}
+
 	FollowerID, FollowingID, err := S.GetSenderAndReceiverIDs(notificationID)
 	if err != nil {
 		tools.SendJSONError(w, "invalid IDs", http.StatusBadRequest)
 		return
 	}
 
-	if followerID != FollowerID || followingID != FollowingID || UserID != FollowingID {
+	if UserID != FollowingID {
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -231,7 +217,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if req.Follower == req.Following || UserID != followerID || S.ContainsHTML([]byte(req.Follower)) || S.ContainsHTML([]byte(req.Following)) {
-		
+
 		fmt.Printf("Invalid request: follower=%s, following=%s, UserID=%d, followerID=%d\n", req.Follower, req.Following, UserID, followerID)
 		S.ActionMiddleware(r, http.MethodPost, true, true)
 		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
@@ -275,7 +261,7 @@ func (S *Server) SendFollowRequestHandler(w http.ResponseWriter, r *http.Request
 		CreatedAt: time.Now(),
 	}
 	if err := S.InsertNotification(notification); err != nil {
-		
+
 		fmt.Printf("Error inserting notification: %v\n", err)
 		tools.SendJSONError(w, "Error inserting notification: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -327,7 +313,7 @@ func (S *Server) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := S.FollowUser(body.Follower, body.Following); err != nil {
-		
+
 		fmt.Printf("Error following user: %v\n", err)
 		tools.SendJSONError(w, "failed to follow", http.StatusInternalServerError)
 		return

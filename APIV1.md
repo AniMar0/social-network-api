@@ -44,7 +44,7 @@ Uploads a file to the server.
   - **Error**:
     ```json
     {
-      "error": "Unsupported file type"
+      "error": "Unsupported file type"  
     }
     ```
 

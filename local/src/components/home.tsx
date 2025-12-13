@@ -404,6 +404,11 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
     );
   };
 
+  function showPostImage(imagePath: string) {
+    if (!imagePath) return "";
+    const cleanPath = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
+    return `${siteConfig.domain}/api/file?filetype=post&path=${cleanPath}`;
+  }   
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar Navigation */}
@@ -508,11 +513,7 @@ function HomeFeed({ onNewPost }: HomeFeedProps) {
                     <div className="mt-2 w-full bg-black/5">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={
-                          post.image.startsWith("http")
-                            ? post.image // external URL
-                            : `${siteConfig.domain}${post.image}` // internal URL
-                        }
+                        src={showPostImage(post.image)}
                         alt="Post content"
                         className="w-full h-auto max-h-[600px] object-contain"
                         loading="lazy"
