@@ -89,14 +89,6 @@ export function MessagesPage({
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // typing indicators
-  const [isTyping, setIsTyping] = useState(false); // other user's typing for UI
-  const [isUserTyping, setIsUserTyping] = useState(false); // my typing state
-
-  // removed typingTimeout & userTypingTimeout states (use refs instead)
-  const typingRef = useRef<NodeJS.Timeout | null>(null); // for other user
-  const userTypingRef = useRef<NodeJS.Timeout | null>(null); // for my typing debounce
-
   const router = useRouter();
 
   const [userOnlineStatus, setUserOnlineStatus] = useState<boolean>(true);
@@ -154,14 +146,6 @@ export function MessagesPage({
         if (selectedChat?.id == data.user) {
           setUserOnlineStatus(data.status);
         }
-        break;
-
-      case "typing-start":
-        handleOtherUserTypingStart(data.payload.chat_id);
-        break;
-
-      case "typing-stop":
-        handleOtherUserTypingStop(data.payload.chat_id);
         break;
 
       case "chat":
@@ -368,134 +352,11 @@ export function MessagesPage({
       setIsUserAtBottom(true);
       setPreviousMessageCount(messages?.length);
       setTimeout(() => scrollToBottom(true), 100);
-
-      // Reset typing states when switching chats
-      setIsTyping(false);
-      setIsUserTyping(false);
-      if (userTypingRef.current) {
-        clearTimeout(userTypingRef.current);
-        userTypingRef.current = null;
-      }
-      if (typingRef.current) {
-        clearTimeout(typingRef.current);
-        typingRef.current = null;
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChat]);
 
-  // ===========================
-  //  Typing effect for my typing (debounced)
-  //  - useRef for timeout, send start once, send stop after debounce
-  // ===========================
-  useEffect(() => {
-    // If input non-empty -> start typing (send once), reset debounce timer
-    if (!selectedChat || !onUserProfileClick) return;
-
-    const ws = wsRef.current;
-    if (newMessage.length > 0) {
-      setIsUserTyping(true);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        try {
-          ws.send(
-            JSON.stringify({
-              channel: "typing-start",
-              chat_id: onUserProfileClick,
-            })
-          );
-        } catch (err) {
-          console.error("Error sending typing-start:", err);
-        }
-      }
-
-      // reset debounce timer to stop typing after 3s of inactivity
-      if (userTypingRef.current) clearTimeout(userTypingRef.current);
-      userTypingRef.current = setTimeout(() => {
-        // stop typing
-        setIsUserTyping(false);
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          try {
-            ws.send(
-              JSON.stringify({
-                channel: "typing-stop",
-                chat_id: selectedChat.id,
-              })
-            );
-          } catch (err) {
-            console.error("Error sending typing-stop:", err);
-          }
-        }
-        userTypingRef.current = null;
-      }, 3000);
-    } else {
-      // empty input => stop immediately
-      if (isUserTyping) {
-        setIsUserTyping(false);
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          try {
-            ws.send(
-              JSON.stringify({
-                channel: "typing-stop",
-                chat_id: selectedChat.id,
-              })
-            );
-          } catch (err) {
-            console.error("Error sending typing-stop:", err);
-          }
-        }
-      }
-      if (userTypingRef.current) {
-        clearTimeout(userTypingRef.current);
-        userTypingRef.current = null;
-      }
-    }
-
-    // cleanup on effect rerun: do NOT clear userTypingRef here (we rely on it)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newMessage, selectedChat]);
-
-  // ===========================
-  // Other user typing handlers (kept names, simplified)
-  // - use typingRef for debounce
-  // ===========================
-  const handleOtherUserTypingStart = (chatId: string) => {
-    if (onUserProfileClick && chatId === onUserProfileClick) {
-      setIsTyping(true);
-
-      // reset timeout to clear typing after 3s if no new event
-      if (typingRef.current) clearTimeout(typingRef.current);
-      typingRef.current = setTimeout(() => {
-        setIsTyping(false);
-        typingRef.current = null;
-      }, 3000);
-    }
-  };
-
-  const handleOtherUserTypingStop = (chatId: string) => {
-    if (onUserProfileClick && chatId === onUserProfileClick) {
-      setIsTyping(false);
-      if (typingRef.current) {
-        clearTimeout(typingRef.current);
-        typingRef.current = null;
-      }
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      // clear any pending timeouts on unmount
-      if (typingRef.current) {
-        clearTimeout(typingRef.current);
-        typingRef.current = null;
-      }
-      if (userTypingRef.current) {
-        clearTimeout(userTypingRef.current);
-        userTypingRef.current = null;
-      }
-    };
-  }, []);
-
-  // handleInputChange now only updates state; typing logic handled in useEffect above
+  // handleInputChange only updates state
   const handleInputChange = (value: string) => {
     setNewMessage(value);
   };
@@ -555,26 +416,6 @@ export function MessagesPage({
       }
 
       setNewMessage("");
-
-      // stop typing immediately after send
-      const ws = wsRef.current;
-      setIsUserTyping(false);
-      if (userTypingRef.current) {
-        clearTimeout(userTypingRef.current);
-        userTypingRef.current = null;
-      }
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        try {
-          ws.send(
-            JSON.stringify({
-              channel: "typing-stop",
-              chat_id: selectedChat.id,
-            })
-          );
-        } catch (err) {
-          console.error("Error sending typing-stop:", err);
-        }
-      }
     }
   };
 
@@ -725,6 +566,9 @@ export function MessagesPage({
   };
 
   const handleUnsendMessage = async (messageId: string) => {
+    if (messageId === "") {
+      return;
+    }
     // try {
     //   const response = await fetch(
     //     `${siteConfig.domain}/api/unsend-message/${messageId}`,
@@ -1122,13 +966,6 @@ export function MessagesPage({
 
             {/* Input Area */}
             <div className="p-4 bg-card/50 backdrop-blur-md border-t border-border/40 z-10">
-              {/* Typing Indicator */}
-              {isTyping && (
-                <div className="absolute -top-10 left-6 bg-card/80 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border/50 shadow-sm animate-in slide-in-from-bottom-2 fade-in">
-                  {selectedChat.name} is typing...
-                </div>
-              )}
-
               <div className="flex items-end gap-3 max-w-4xl mx-auto">
                 <div className="flex gap-1 pb-1">
                   <input
