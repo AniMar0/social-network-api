@@ -95,23 +95,34 @@ export const markNotificationAsRead = async (
   if (AllNotifications) {
     try {
       // TODO: Replace with actual API call
-      await fetch(`${siteConfig.domain}/api/mark-all-notification-as-read`, {
-        method: "POST",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${siteConfig.domain}/api/mark-all-notification-as-read`,
+        {
+          method: "PUT",
+          credentials: "include",
+        }
+      );
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to mark all notifications as read");
+      }
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
   } else if (notificationId) {
     try {
       // TODO: Replace with actual API call
-      await fetch(
+      const res = await fetch(
         `${siteConfig.domain}/api/mark-notification-as-read/${notificationId}`,
         {
-          method: "POST",
+          method: "PUT",
           credentials: "include",
         }
       );
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to mark notification as read");
+      }
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
@@ -124,13 +135,17 @@ export const deleteNotification = async (
 ): Promise<void> => {
   try {
     // TODO: Replace with actual API call
-    await fetch(
+    const res = await fetch(
       `${siteConfig.domain}/api/delete-notification/${notificationId}`,
       {
-        method: "POST",
+        method: "DELETE",
         credentials: "include",
       }
     );
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || "Failed to delete notification");
+    }
   } catch (error) {
     console.error("Error deleting notification:", error);
   }
