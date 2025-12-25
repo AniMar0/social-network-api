@@ -284,12 +284,12 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
         setGroups((prev) =>
           prev.map((group) =>
             String(group.id) === String(groupId)
-              ? { ...group, hasPendingRequest: true }
+              ? { ...group, isMember: true, hasPendingRequest: false }
               : group
           )
         );
         if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
-          setSelectedGroup({ ...selectedGroup, hasPendingRequest: true });
+          setSelectedGroup({ ...selectedGroup, isMember: true, hasPendingRequest: false });
         }
       } else {
         const text = await res.text().catch(() => "");
@@ -298,12 +298,12 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
           setGroups((prev) =>
             prev.map((group) =>
               String(group.id) === String(groupId)
-                ? { ...group, hasPendingRequest: true }
+                ? { ...group, isMember: true, hasPendingRequest: false }
                 : group
             )
           );
           if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
-            setSelectedGroup({ ...selectedGroup, hasPendingRequest: true });
+            setSelectedGroup({ ...selectedGroup, isMember: true, hasPendingRequest: false });
           }
           return;
         }

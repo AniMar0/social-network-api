@@ -94,7 +94,7 @@ func (S *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 // GetGroupHandler returns a specific group
 func (S *Server) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.URL.Path[len("/api/groups/"):]
-	
+
 	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
 	if !checkGroupID {
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
@@ -240,11 +240,19 @@ func (S *Server) JoinGroupRequestHandler(w http.ResponseWriter, r *http.Request)
 	// Check if already requested
 	S.db.QueryRow("SELECT COUNT(*) FROM group_requests WHERE group_id = ? AND user_id = ? AND type = 'request' AND status = 'pending'", req.GroupID, userID).Scan(&count)
 	if count > 0 {
-		http.Error(w, "Request already pending", http.StatusBadRequest)
+		// Treat group as public: convert pending request to membership
+		_, _ = S.db.Exec("DELETE FROM group_requests WHERE group_id = ? AND user_id = ? AND type = 'request' AND status = 'pending'", req.GroupID, userID)
+		_, err = S.db.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", req.GroupID, userID)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	_, err = S.db.Exec("INSERT INTO group_requests (group_id, user_id, requester_id, type, status) VALUES (?, ?, ?, 'request', 'pending')", req.GroupID, userID, userID)
+	// Immediate join (public groups)
+	_, err = S.db.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", req.GroupID, userID)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -320,7 +328,7 @@ func (S *Server) AcceptGroupRequestHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	requestIDStr := r.URL.Path[len("/api/groups/requests/accept/"):]
-	
+
 	checkRequestID, requestID := tools.IsNumeric(requestIDStr)
 	if !checkRequestID {
 		http.Error(w, "Invalid request ID", http.StatusBadRequest)
@@ -386,7 +394,7 @@ func (S *Server) DeclineGroupRequestHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	requestIDStr := r.URL.Path[len("/api/groups/requests/decline/"):]
-	
+
 	checkRequestID, requestID := tools.IsNumeric(requestIDStr)
 	if !checkRequestID {
 		http.Error(w, "Invalid request ID", http.StatusBadRequest)
@@ -440,7 +448,6 @@ func (S *Server) GetGroupRequestsHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	groupIDStr := r.URL.Query().Get("groupId")
-
 
 	var rows *sql.Rows
 
@@ -586,7 +593,7 @@ func (S *Server) CreateGroupPostHandler(w http.ResponseWriter, r *http.Request) 
 // GetGroupPostsHandler returns posts for a group
 func (S *Server) GetGroupPostsHandler(w http.ResponseWriter, r *http.Request) {
 	groupIDStr := r.URL.Path[len("/api/groups/posts/"):]
-	
+
 	checkGroupID, groupID := tools.IsNumeric(groupIDStr)
 	if !checkGroupID {
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)

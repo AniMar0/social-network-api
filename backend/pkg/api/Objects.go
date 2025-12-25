@@ -89,7 +89,7 @@ type Message struct {
 }
 
 type Chat struct {
-	ChatID   int `json:"id"`
+	ChatID   int    `json:"id"`
 	Name     string `json:"name"`
 	UserID   int    `json:"userId,omitempty"`
 	Url      string `json:"otherUserId,omitempty"`
