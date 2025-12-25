@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { GroupsPage } from "@/components/groups";
 import { NewPostModal } from "@/components/newpost";
 import { authUtils } from "@/lib/navigation";
@@ -11,9 +11,8 @@ export default function GroupPage() {
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  // const params = useParams();
-
-  // const groupId = params.id as string;
+  const params = useParams();
+  const groupId = params.id as string;
 
   // Check authentication
   useEffect(() => {
@@ -57,7 +56,7 @@ export default function GroupPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <GroupsPage onNewPost={handleNewPost} />
+      <GroupsPage onNewPost={handleNewPost} initialGroupId={groupId} />
 
       <NewPostModal
         isOpen={isNewPostModalOpen}

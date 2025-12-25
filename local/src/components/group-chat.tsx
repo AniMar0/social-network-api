@@ -140,8 +140,8 @@ export function GroupChat({
             id: data.id.toString(),
             content: data.content,
             authorId: data.senderId.toString(),
-            authorName: data.sender.FirstName + " " + data.sender.LastName, // Note capitalization from Go struct
-            authorAvatar: data.sender.AvatarUrl || "",
+            authorName: data.sender.firstName + " " + data.sender.lastName,
+            authorAvatar: data.sender.avatarUrl || "",
             timestamp: data.createdAt,
             type: "text",
             isOwn: true,

@@ -99,10 +99,12 @@ interface GroupEvent {
 
 interface GroupsPageProps {
   onNewPost?: () => void;
+  initialGroupId?: string;
 }
 
 interface GroupMember {
-  url: number;
+  userId: number;
+  url: string;
   firstName: string;
   lastName: string;
   nickname?: string;
@@ -110,7 +112,7 @@ interface GroupMember {
   isPrivate: boolean;
 }
 
-export function GroupsPage({ onNewPost }: GroupsPageProps) {
+export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
   const notificationCount = useNotificationCount();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -163,12 +165,27 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
         const data = await res.json();
         // Map backend data to frontend interface if needed
         // Assuming backend returns array of groups
-        setGroups(data || []);
+        const mapped = (Array.isArray(data) ? data : []).map((g: any) => ({
+          ...g,
+          isOwner: Boolean(g?.isCreator),
+        }));
+        setGroups(mapped);
       }
     } catch (error) {
       console.error("Failed to fetch groups:", error);
     }
   };
+
+  useEffect(() => {
+    if (!initialGroupId) return;
+    if (!groups || groups.length === 0) return;
+    const target = groups.find((g) => String(g.id) === String(initialGroupId));
+    if (target) {
+      setSelectedGroup(target);
+      setActiveTab("group-view");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialGroupId, groups]);
 
   const fetchGroupPosts = async (groupId: string) => {
     try {
@@ -388,7 +405,7 @@ export function GroupsPage({ onNewPost }: GroupsPageProps) {
     if (!selectedGroup) return;
     console.log("Selected group ID:", selectedGroup.id);
     try {
-      const res = await fetch(`/api/groups/members/${selectedGroup.id}`, {
+      const res = await fetch(`${siteConfig.domain}/api/groups/members/${selectedGroup.id}`, {
         method: "GET",
         credentials: "include",
       });
