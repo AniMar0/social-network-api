@@ -159,7 +159,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) SendMessage(message Message) error {
-	query := `INSERT INTO messages (sender_id, id, chat_id, content, type) VALUES (?,?, ?, ? , ?, ?, ?)`
+	query := `INSERT INTO messages (sender_id, id, chat_id, content, type) VALUES (?, ?, ?, ?, ?)`
 	_, err := S.db.Exec(query, message.SenderID, message.ID, message.ChatID, html.EscapeString(message.Content), message.Type)
 	if err != nil {
 		fmt.Println(err)
@@ -352,7 +352,7 @@ func (S *Server) CheckIfCaneSendMessage(currentUserID, chatID int) bool {
 }
 
 func (S *Server) ValidateMessage(message Message) bool {
-	if message.Type != "text" && message.Type != "emoji" {
+	if message.Type != "text" && message.Type != "emoji" && message.Type != "gif" && message.Type != "image" {
 		return false
 	}
 	if message.Type == "text" && len(strings.TrimSpace(message.Content)) == 0 {

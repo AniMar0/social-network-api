@@ -496,6 +496,24 @@ func (S *Server) GetFollowersHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(followers)
 }
+
+func (S *Server) GetFollowingsHandler(w http.ResponseWriter, r *http.Request) {
+	banned, currentUser := S.ActionMiddleware(r, http.MethodGet, true, false)
+	if banned {
+		tools.SendJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	followings, err := S.GetFollowings(currentUser)
+	if err != nil {
+		tools.SendJSONError(w, "failed to get followings", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(followings)
+}
+
 func (S *Server) GetFollowers(User int) ([]Follower, error) {
 	var followers []Follower
 	query := `SELECT 
@@ -526,4 +544,36 @@ func (S *Server) GetFollowers(User int) ([]Follower, error) {
 		followers = append(followers, follower)
 	}
 	return followers, nil
+}
+
+func (S *Server) GetFollowings(User int) ([]Follower, error) {
+	var followings []Follower
+	query := `SELECT 
+		u.id,
+		u.first_name,
+		u.last_name,
+		u.nickname,
+		u.avatar
+	FROM follows f
+	JOIN users u ON u.id = f.following_id
+	WHERE f.follower_id = ?;
+	`
+	rows, err := S.db.Query(query, User)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var following Follower
+		var nickname sql.NullString
+		if err := rows.Scan(&following.ID, &following.FirstName, &following.LastName, &nickname, &following.Avatar); err != nil {
+			return nil, err
+		}
+		if nickname.Valid {
+			following.Nickname = nickname.String
+		}
+		followings = append(followings, following)
+	}
+	return followings, nil
 }

@@ -20,6 +20,12 @@ import { useNotificationCount } from "@/lib/notifications";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import GifPicker from "gif-picker-react";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -63,6 +69,14 @@ interface UserProfile {
   followersCount: string;
 }
 
+interface Follower {
+  id: string;
+  firstName: string;
+  lastName: string;
+  username?: string;
+  avatar: string;
+}
+
 interface MessagesPageProps {
   onNewPost?: () => void;
   onUserProfileClick?: string;
@@ -102,6 +116,11 @@ export function MessagesPage({
   const notificationCount = useNotificationCount();
 
   const [chats, setChats] = useState<Chat[]>([]);
+
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [followers, setFollowers] = useState<Follower[]>([]);
+  const [newChatSearch, setNewChatSearch] = useState("");
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   // keep a ref to ws to add/remove handlers cleanly
   const wsRef = useRef<WebSocket | null>(null);
@@ -235,24 +254,7 @@ export function MessagesPage({
   //  (kept your original flow but structured)
   // ===========================
   useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const res = await fetch(`${siteConfig.domain}/api/get-users`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Failed to fetch chats");
-        const data: Chat[] = await res.json();
-        setChats(data || []);
-        if (onUserProfileClick && !selectedChat && data) {
-          const chat = data.find((c) => c.id === onUserProfileClick);
-          if (chat) setSelectedChat(chat);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchChats();
+    refreshChats();
 
     if (selectedChat) {
       fetchUserProfile(selectedChat.id);
@@ -261,6 +263,86 @@ export function MessagesPage({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChat]);
+
+  const refreshChats = async () => {
+    try {
+      const res = await fetch(`${siteConfig.domain}/api/get-users`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch chats");
+      const data: Chat[] = await res.json();
+      setChats(data || []);
+      if (onUserProfileClick && !selectedChat && data) {
+        const chat = data.find((c) => c.id === onUserProfileClick);
+        if (chat) setSelectedChat(chat);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isNewChatOpen) return;
+    const fetchFollowers = async () => {
+      try {
+        const [followersRes, followingsRes] = await Promise.all([
+          fetch(`${siteConfig.domain}/api/get-followers`, {
+            credentials: "include",
+          }),
+          fetch(`${siteConfig.domain}/api/get-followings`, {
+            credentials: "include",
+          }),
+        ]);
+
+        const followersData = followersRes.ok
+          ? await followersRes.json().catch(() => [])
+          : [];
+        const followingsData = followingsRes.ok
+          ? await followingsRes.json().catch(() => [])
+          : [];
+
+        const combined = ([] as Follower[])
+          .concat(Array.isArray(followersData) ? followersData : [])
+          .concat(Array.isArray(followingsData) ? followingsData : []);
+
+        const unique = new Map<string, Follower>();
+        combined.forEach((u) => {
+          if (u && u.id) unique.set(String(u.id), u);
+        });
+
+        setFollowers(Array.from(unique.values()));
+      } catch (err) {
+        console.error("Error fetching followers:", err);
+        setFollowers([]);
+      }
+    };
+    fetchFollowers();
+  }, [isNewChatOpen]);
+
+  const handleStartChat = async (otherUserId: string) => {
+    if (!/^\d+$/.test(otherUserId)) return;
+    try {
+      setIsCreatingChat(true);
+      const res = await fetch(`${siteConfig.domain}/api/make-chat/${otherUserId}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = data?.error || data?.message || "Failed to create chat";
+        throw new Error(msg);
+      }
+      const chatId = String(data);
+      setIsNewChatOpen(false);
+      setNewChatSearch("");
+      await refreshChats();
+      router.replace(`/messages/${chatId}`);
+    } catch (err) {
+      console.error("Error creating chat:", err);
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
 
 
   const fetchMessages = async (userId: string) => {
@@ -667,6 +749,14 @@ export function MessagesPage({
               <h1 className="text-2xl font-bold text-foreground tracking-tight">
                 Messages
               </h1>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setIsNewChatOpen(true)}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                New
+              </Button>
             </div>
 
             <div className="relative group">
@@ -682,6 +772,11 @@ export function MessagesPage({
 
           <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
             {/* Chat List */}
+            {filteredAndSortedChats.length === 0 && (
+              <div className="p-4 text-sm text-muted-foreground">
+                No chats yet. Click "New" to start a conversation.
+              </div>
+            )}
             {filteredAndSortedChats.map((chat) => (
               <div
                 key={chat.id}
@@ -745,6 +840,67 @@ export function MessagesPage({
             ))}
           </div>
         </div>
+
+        <Dialog open={isNewChatOpen} onOpenChange={setIsNewChatOpen}>
+          <DialogContent className="glass-panel border-border/50 sm:max-w-[520px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">New Message</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="Search followers"
+                value={newChatSearch}
+                onChange={(e) => setNewChatSearch(e.target.value)}
+                className="bg-background/50 border-border/50 h-11"
+              />
+              <div className="max-h-[360px] overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                {(followers || [])
+                  .filter((f) => {
+                    const q = newChatSearch.toLowerCase().trim();
+                    if (!q) return true;
+                    const name = `${f.firstName} ${f.lastName}`.toLowerCase();
+                    const uname = (f.username || "").toLowerCase();
+                    return name.includes(q) || uname.includes(q);
+                  })
+                  .map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => handleStartChat(f.id)}
+                      disabled={isCreatingChat}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/40 hover:border-primary/30 hover:bg-white/5 transition-all text-left"
+                    >
+                      <Avatar className="h-10 w-10 ring-2 ring-background">
+                        <AvatarImage
+                          src={`${siteConfig.domain}/${f.avatar}`}
+                          alt={`${f.firstName} ${f.lastName}`}
+                          className="object-cover"
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                          {(f.firstName || "U").slice(0, 1).toUpperCase()}
+                          {(f.lastName || "").slice(0, 1).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground truncate">
+                          {f.firstName} {f.lastName}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {f.username ? `@${f.username}` : ""}
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">Start</div>
+                    </button>
+                  ))}
+                {followers.length === 0 && (
+                  <div className="p-3 text-sm text-muted-foreground">
+                    No followers to message yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Chat Area */}
         {selectedChat ? (
