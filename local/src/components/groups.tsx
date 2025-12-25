@@ -167,6 +167,8 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
         // Assuming backend returns array of groups
         const mapped = (Array.isArray(data) ? data : []).map((g: any) => ({
           ...g,
+          id: String(g?.id ?? ""),
+          creatorId: String(g?.creatorId ?? g?.creatorID ?? ""),
           isOwner: Boolean(g?.isCreator),
         }));
         setGroups(mapped);
@@ -251,7 +253,13 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
 
         if (res.ok) {
           const newGroup = await res.json();
-          setGroups([newGroup, ...groups]);
+          const normalized = {
+            ...newGroup,
+            id: String(newGroup?.id ?? ""),
+            creatorId: String(newGroup?.creatorId ?? newGroup?.creatorID ?? ""),
+            isOwner: Boolean(newGroup?.isCreator),
+          };
+          setGroups([normalized, ...groups]);
           setNewGroupTitle("");
           setNewGroupDescription("");
           setNewGroupPrivacy("public");
@@ -273,11 +281,46 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
       });
 
       if (res.ok) {
-        setGroups(
-          groups.map((group) =>
-            group.id === groupId ? { ...group, hasPendingRequest: true } : group
+        setGroups((prev) =>
+          prev.map((group) =>
+            String(group.id) === String(groupId)
+              ? { ...group, hasPendingRequest: true }
+              : group
           )
         );
+        if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
+          setSelectedGroup({ ...selectedGroup, hasPendingRequest: true });
+        }
+      } else {
+        const text = await res.text().catch(() => "");
+        const normalized = (text || "").toLowerCase();
+        if (normalized.includes("request already pending")) {
+          setGroups((prev) =>
+            prev.map((group) =>
+              String(group.id) === String(groupId)
+                ? { ...group, hasPendingRequest: true }
+                : group
+            )
+          );
+          if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
+            setSelectedGroup({ ...selectedGroup, hasPendingRequest: true });
+          }
+          return;
+        }
+        if (normalized.includes("already a member")) {
+          setGroups((prev) =>
+            prev.map((group) =>
+              String(group.id) === String(groupId)
+                ? { ...group, isMember: true, hasPendingRequest: false }
+                : group
+            )
+          );
+          if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
+            setSelectedGroup({ ...selectedGroup, isMember: true, hasPendingRequest: false });
+          }
+          return;
+        }
+        console.error("Failed to join group:", text || res.statusText);
       }
     } catch (error) {
       console.error("Failed to join group:", error);
