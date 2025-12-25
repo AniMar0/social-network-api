@@ -20,6 +20,7 @@ interface User {
   followers: number;
   following: number;
   isFollowing: boolean;
+  isRequested?: boolean;
   url?: string;
   isPrivate?: boolean;
 }
@@ -74,6 +75,8 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
               const id = (udata.id ? String(udata.id) : safeUrl || (udata.nickname || "").toString() || "");
               const displayName = [first, last].filter(Boolean).join(" ") || (udata.nickname || safeUrl || id || "User").toString();
               const handle = (udata.nickname || safeUrl || id || "user").toString();
+              const followRequestStatus = (udata.followRequestStatus || "").toString().toLowerCase();
+              const isRequested = followRequestStatus === "pending";
               const u: User = {
                 id,
                 name: displayName,
@@ -83,6 +86,7 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
                 followers: udata.followersCount ?? profile?.followers ?? 0,
                 following: udata.followingCount ?? profile?.following ?? 0,
                 isFollowing: Boolean(profile?.isfollowing),
+                isRequested,
                 url: safeUrl,
                 isPrivate: Boolean(udata.isPrivate),
               };
@@ -155,7 +159,7 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
       }
       const body = JSON.stringify({ follower: currentUser.id, following: targetFollowingId });
       let endpoint = "";
-      let optimistic: null | { isFollowing: boolean; followers: number } = null;
+      let optimistic: null | { isFollowing?: boolean; followers?: number; isRequested?: boolean } = null;
       // If still not numeric after resolution, avoid navigating away; let user open profile explicitly
       if (!/^\d+$/.test(String(targetFollowingId))) {
         console.warn("Cannot resolve numeric user ID for follow from Explore; open profile to follow.");
@@ -163,14 +167,14 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
       }
       if (user.isFollowing) {
         endpoint = `${siteConfig.domain}/api/unfollow`;
-        optimistic = { isFollowing: false, followers: Math.max(0, user.followers - 1) };
+        optimistic = { isFollowing: false, followers: Math.max(0, user.followers - 1), isRequested: false };
       } else if (user.isPrivate) {
         // Private profile: send follow request, do not flip following in UI
         endpoint = `${siteConfig.domain}/api/send-follow-request`;
-        optimistic = null;
+        optimistic = { isRequested: true };
       } else {
         endpoint = `${siteConfig.domain}/api/follow`;
-        optimistic = { isFollowing: true, followers: user.followers + 1 };
+        optimistic = { isFollowing: true, followers: user.followers + 1, isRequested: false };
       }
 
       if (optimistic) {
@@ -188,6 +192,18 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
         body,
       });
       if (!res.ok) {
+        if (res.status === 409) {
+          const errJson = await res.json().catch(() => null);
+          const errMsg = (errJson && typeof errJson.error === "string" ? errJson.error : "").toLowerCase();
+          if (errMsg.includes("follow request already sent")) {
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === userId ? { ...u, isRequested: true } : u
+              )
+            );
+            return;
+          }
+        }
         // revert optimistic update
         if (optimistic) {
           setUsers((prev) =>
@@ -197,6 +213,7 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
                     ...u,
                     isFollowing: user.isFollowing,
                     followers: user.followers,
+                    isRequested: user.isRequested,
                   }
                 : u
             )
@@ -343,6 +360,7 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
                           handleFollowToggle(user.id);
                         }}
                         variant={user.isFollowing ? "outline" : "default"}
+                        disabled={Boolean(user.isRequested) && !user.isFollowing}
                         className={`w-full rounded-xl h-10 font-medium shadow-md transition-all ${
                           user.isFollowing
                             ? "border-primary/20 text-primary hover:bg-primary/10 hover:text-primary hover:border-primary/50"
@@ -354,6 +372,8 @@ export function ExplorePage({ onNavigate, onNewPost }: ExplorePageProps) {
                             <UserCheck className="h-4 w-4 mr-2" />
                             Following
                           </>
+                        ) : user.isRequested ? (
+                          <>Requested</>
                         ) : (
                           <>
                             <UserPlus className="h-4 w-4 mr-2" />
