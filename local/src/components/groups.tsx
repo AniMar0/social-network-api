@@ -170,6 +170,7 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
           id: String(g?.id ?? ""),
           creatorId: String(g?.creatorId ?? g?.creatorID ?? ""),
           isOwner: Boolean(g?.isCreator),
+          isPrivate: String(g?.privacy ?? "").toLowerCase() === "private",
         }));
         setGroups(mapped);
       }
@@ -247,6 +248,7 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
           body: JSON.stringify({
             title: newGroupTitle,
             description: newGroupDescription,
+            privacy: newGroupPrivacy,
           }),
           credentials: "include",
         });
@@ -258,6 +260,7 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
             id: String(newGroup?.id ?? ""),
             creatorId: String(newGroup?.creatorId ?? newGroup?.creatorID ?? ""),
             isOwner: Boolean(newGroup?.isCreator),
+            isPrivate: String(newGroup?.privacy ?? "").toLowerCase() === "private",
           };
           setGroups([normalized, ...groups]);
           setNewGroupTitle("");
@@ -281,6 +284,21 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
       });
 
       if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const status = data && typeof data.status === "string" ? data.status : "joined";
+        if (status === "pending") {
+          setGroups((prev) =>
+            prev.map((group) =>
+              String(group.id) === String(groupId)
+                ? { ...group, hasPendingRequest: true }
+                : group
+            )
+          );
+          if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
+            setSelectedGroup({ ...selectedGroup, hasPendingRequest: true });
+          }
+          return;
+        }
         setGroups((prev) =>
           prev.map((group) =>
             String(group.id) === String(groupId)
@@ -298,12 +316,12 @@ export function GroupsPage({ onNewPost, initialGroupId }: GroupsPageProps) {
           setGroups((prev) =>
             prev.map((group) =>
               String(group.id) === String(groupId)
-                ? { ...group, isMember: true, hasPendingRequest: false }
+                ? { ...group, hasPendingRequest: true }
                 : group
             )
           );
           if (selectedGroup && String(selectedGroup.id) === String(groupId)) {
-            setSelectedGroup({ ...selectedGroup, isMember: true, hasPendingRequest: false });
+            setSelectedGroup({ ...selectedGroup, hasPendingRequest: true });
           }
           return;
         }

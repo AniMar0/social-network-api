@@ -1,0 +1,1 @@
+ALTER TABLE groups ADD COLUMN privacy TEXT NOT NULL DEFAULT 'public';

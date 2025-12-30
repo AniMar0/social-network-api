@@ -35,8 +35,17 @@ func (S *Server) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	privacy := strings.ToLower(strings.TrimSpace(group.Privacy))
+	if privacy == "" {
+		privacy = "public"
+	}
+	if privacy != "public" && privacy != "private" {
+		http.Error(w, "Invalid privacy", http.StatusBadRequest)
+		return
+	}
+
 	// Insert group
-	res, err := S.db.Exec("INSERT INTO groups (creator_id, title, description) VALUES (?, ?, ?)", userID, html.EscapeString(group.Title), html.EscapeString(group.Description))
+	res, err := S.db.Exec("INSERT INTO groups (creator_id, title, description, privacy) VALUES (?, ?, ?, ?)", userID, html.EscapeString(group.Title), html.EscapeString(group.Description), privacy)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -54,6 +63,7 @@ func (S *Server) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 	group.ID = int(groupID)
 	group.CreatorID = userID
 	group.CreatedAt = time.Now().Format(time.RFC3339)
+	group.Privacy = privacy
 	group.IsMember = true
 	group.IsCreator = true
 
@@ -65,7 +75,7 @@ func (S *Server) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 func (S *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	userID, _, _ := S.CheckSession(r) // Optional: check if user is logged in to show membership status
 
-	rows, err := S.db.Query("SELECT id, creator_id, title, description, created_at FROM groups ORDER BY created_at DESC")
+	rows, err := S.db.Query("SELECT id, creator_id, title, description, privacy, created_at FROM groups ORDER BY created_at DESC")
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -75,7 +85,7 @@ func (S *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	var groups []Group
 	for rows.Next() {
 		var g Group
-		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.CreatedAt); err != nil {
+		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.Privacy, &g.CreatedAt); err != nil {
 			continue
 		}
 		if userID != 0 {
@@ -104,7 +114,7 @@ func (S *Server) GetGroupHandler(w http.ResponseWriter, r *http.Request) {
 	userID, _, _ := S.CheckSession(r)
 
 	var g Group
-	err := S.db.QueryRow("SELECT id, creator_id, title, description, created_at FROM groups WHERE id = ?", groupID).Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.CreatedAt)
+	err := S.db.QueryRow("SELECT id, creator_id, title, description, privacy, created_at FROM groups WHERE id = ?", groupID).Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.Privacy, &g.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Group not found", http.StatusNotFound)
@@ -240,25 +250,41 @@ func (S *Server) JoinGroupRequestHandler(w http.ResponseWriter, r *http.Request)
 	// Check if already requested
 	S.db.QueryRow("SELECT COUNT(*) FROM group_requests WHERE group_id = ? AND user_id = ? AND type = 'request' AND status = 'pending'", req.GroupID, userID).Scan(&count)
 	if count > 0 {
-		// Treat group as public: convert pending request to membership
-		_, _ = S.db.Exec("DELETE FROM group_requests WHERE group_id = ? AND user_id = ? AND type = 'request' AND status = 'pending'", req.GroupID, userID)
+		http.Error(w, "Request already pending", http.StatusBadRequest)
+		return
+	}
+
+	var privacy string
+	if err := S.db.QueryRow("SELECT privacy FROM groups WHERE id = ?", req.GroupID).Scan(&privacy); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Group not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	privacy = strings.ToLower(strings.TrimSpace(privacy))
+	if privacy != "private" {
+		// public group: join immediately
 		_, err = S.db.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", req.GroupID, userID)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "joined"})
 		return
 	}
 
-	// Immediate join (public groups)
-	_, err = S.db.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", req.GroupID, userID)
+	// private group: create pending request
+	_, err = S.db.Exec("INSERT INTO group_requests (group_id, user_id, requester_id, type, status) VALUES (?, ?, ?, 'request', 'pending')", req.GroupID, userID, userID)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "pending"})
 }
 
 // InviteGroupMemberHandler handles invitations

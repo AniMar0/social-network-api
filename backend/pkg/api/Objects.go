@@ -129,6 +129,7 @@ type Group struct {
 	CreatorID   int    `json:"creatorId"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Privacy     string `json:"privacy"`
 	CreatedAt   string `json:"createdAt"`
 	IsMember    bool   `json:"isMember,omitempty"`
 	IsCreator   bool   `json:"isCreator,omitempty"`
